@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Edit Shift{% endblock %}
+
+{% block body %}
+    <h1>Edit Shift</h1>
+
+    {{ include('shift/_form.html.twig', {'button_label': 'Update'}) }}
+
+    <a href="{{ path('app_shift_index') }}">back to list</a>
+
+    {{ include('shift/_delete_form.html.twig') }}
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Shift index{% endblock %}
+
+{% block body %}
+    <h1>Shift index</h1>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>ShiftDate</th>
+                <th>StartTime</th>
+                <th>EndTime</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for shift in shifts %}
+            <tr>
+                <td>{{ shift.id }}</td>
+                <td>{{ shift.shiftDate ? shift.shiftDate|date('Y-m-d') : '' }}</td>
+                <td>{{ shift.startTime ? shift.startTime|date('H:i:s') : '' }}</td>
+                <td>{{ shift.endTime ? shift.endTime|date('H:i:s') : '' }}</td>
+                <td>{{ shift.type }}</td>
+                <td>{{ shift.status }}</td>
+                <td>
+                    <a href="{{ path('app_shift_show', {'id': shift.id}) }}">show</a>
+                    <a href="{{ path('app_shift_edit', {'id': shift.id}) }}">edit</a>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="7">no records found</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_shift_new') }}">Create new</a>
+{% endblock %}
