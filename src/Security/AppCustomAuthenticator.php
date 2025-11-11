@@ -4,7 +4,6 @@ namespace App\Security;
 
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Security;
@@ -21,48 +20,50 @@ class AppCustomAuthenticator extends AbstractLoginFormAuthenticator
 
     public const LOGIN_ROUTE = 'app_login';
 
-    private UrlGeneratorInterface $urlGenerator;
-
-    public function __construct(UrlGeneratorInterface $urlGenerator)
+    public function __construct(private UrlGeneratorInterface $urlGenerator)
     {
         $this->urlGenerator = $urlGenerator;
     }
 
     public function authenticate(Request $request): Passport
     {
-        $email = $request->request->get('email', '');
+        // 🔥 IMPORTANT : ton champ dans le formulaire Twig s'appelle "_username"
+        $email = $request->request->get('_username', '');
+        $password = $request->request->get('_password', '');
 
+        // Sauvegarde du dernier nom d’utilisateur (affiché après échec)
         $request->getSession()->set(Security::LAST_USERNAME, $email);
 
         return new Passport(
             new UserBadge($email),
-            new PasswordCredentials($request->request->get('password', '')),
+            new PasswordCredentials($password),
             [
                 new CsrfTokenBadge('authenticate', $request->request->get('_csrf_token')),
             ]
         );
     }
 
-    public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response
-{
-    $user = $token->getUser();
+    public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?RedirectResponse
+    {
+        // 🔥 Redirection selon le rôle
+        $user = $token->getUser();
 
-    // Redirection selon le rôle
-    if (in_array('ROLE_ADMIN', $user->getRoles(), true)) {
-        return new RedirectResponse($this->urlGenerator->generate('admin_dashboard'));
+        if (method_exists($user, 'getRole')) {
+            $role = strtoupper($user->getRole());
+            if ($role === 'ADMIN') {
+                return new RedirectResponse($this->urlGenerator->generate('admin_dashboard'));
+            }
+            if ($role === 'AGENT') {
+                return new RedirectResponse($this->urlGenerator->generate('agent_dashboard'));
+            }
+        }
+
+        // Si autre ou erreur
+        return new RedirectResponse($this->urlGenerator->generate(self::LOGIN_ROUTE));
     }
-
-    if (in_array('ROLE_AGENT', $user->getRoles(), true)) {
-        return new RedirectResponse($this->urlGenerator->generate('agent_dashboard'));
-    }
-
-    // Par défaut : rediriger vers la page d'accueil
-    return new RedirectResponse($this->urlGenerator->generate('app_home'));
-}
-
 
     protected function getLoginUrl(Request $request): string
-{
-    return $this->urlGenerator->generate('app_login');
-}
+    {
+        return $this->urlGenerator->generate(self::LOGIN_ROUTE);
+    }
 }

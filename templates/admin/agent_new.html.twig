@@ -1,0 +1,21 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouvel Agent{% endblock %}
+
+{% block body %}
+{% include 'admin/_navbar.html.twig' %}
+
+<div class="container py-4">
+    <h2>➕ Nouvel Agent</h2>
+
+    {{ form_start(form) }}
+        {{ form_row(form.firstName) }}
+        {{ form_row(form.lastName) }}
+        {{ form_row(form.phone) }}
+        {{ form_row(form.hourlyRate) }}
+        {{ form_row(form.site) }}
+
+        <button class="btn btn-success mt-3">Enregistrer</button>
+    {{ form_end(form) }}
+</div>
+{% endblock %}

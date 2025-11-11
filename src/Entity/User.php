@@ -4,8 +4,8 @@ namespace App\Entity;
 
 use App\Repository\UserRepository;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
@@ -22,7 +22,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $password = null;
 
     #[ORM\Column(length: 50)]
-    private ?string $role = null; // ADMIN, RH, AGENT
+    private ?string $role = null; // ADMIN ou AGENT
 
     #[ORM\Column(type: 'datetime_immutable', options: ['default' => 'CURRENT_TIMESTAMP'])]
     private ?\DateTimeImmutable $createdAt = null;
@@ -32,42 +32,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->createdAt = new \DateTimeImmutable();
     }
 
-    // ===========================
-    // UserInterface methods
-    // ===========================
-
-    public function getUserIdentifier(): string
-    {
-        return (string) $this->email;
-    }
-
-    public function getRoles(): array
-    {
-        return [$this->role];
-    }
-
-    public function eraseCredentials(): void
-    {
-        // si tu stockes des données temporaires sensibles, vide-les ici
-    }
-
-    // ===========================
-    // PasswordAuthenticatedUserInterface
-    // ===========================
-    public function getPassword(): ?string
-    {
-        return $this->password;
-    }
-
-    public function setPassword(string $password): self
-    {
-        $this->password = $password;
-        return $this;
-    }
-
-    // ===========================
-    // Autres getters/setters
-    // ===========================
     public function getId(): ?int
     {
         return $this->id;
@@ -81,7 +45,26 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setEmail(string $email): self
     {
         $this->email = $email;
+
         return $this;
+    }
+
+    public function getPassword(): ?string
+    {
+        return $this->password;
+    }
+
+    public function setPassword(string $password): self
+    {
+        $this->password = $password;
+
+        return $this;
+    }
+
+    // ✅ Symfony demande un tableau de rôles commençant par ROLE_
+    public function getRoles(): array
+    {
+        return ['ROLE_' . strtoupper($this->role)];
     }
 
     public function getRole(): ?string
@@ -92,11 +75,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setRole(string $role): self
     {
         $this->role = $role;
+
         return $this;
     }
 
-    public function getCreatedAt(): ?\DateTimeImmutable
+    public function getUserIdentifier(): string
     {
-        return $this->createdAt;
+        return $this->email;
+    }
+
+    public function eraseCredentials(): void
+    {
+        // rien à effacer
     }
 }

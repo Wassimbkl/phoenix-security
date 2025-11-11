@@ -1,0 +1,44 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dashboard Admin{% endblock %}
+
+{% block body %}
+{% include 'admin/_navbar.html.twig' %}
+
+<div class="container py-4">
+    <h2 class="mb-4 text-center">Tableau de bord - ADMIN</h2>
+
+    <div class="row text-center">
+        <div class="col-md-2 mb-3">
+            <div class="card shadow-sm p-3">
+                <h6>Total Agents</h6>
+                <h3>{{ stats.total_agents }}</h3>
+            </div>
+        </div>
+        <div class="col-md-2 mb-3">
+            <div class="card shadow-sm p-3">
+                <h6>Agents Actifs</h6>
+                <h3>{{ stats.active_agents }}</h3>
+            </div>
+        </div>
+        <div class="col-md-2 mb-3">
+            <div class="card shadow-sm p-3">
+                <h6>Shifts ce mois</h6>
+                <h3>{{ stats.total_shifts }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm p-3">
+                <h6>Heures Totales</h6>
+                <h3>{{ stats.total_hours }}h</h3>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm p-3">
+                <h6>Salaire Total</h6>
+                <h3>€{{ stats.total_salary }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

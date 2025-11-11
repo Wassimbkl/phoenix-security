@@ -1,0 +1,77 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestion des Agents - Phoenix Security{% endblock %}
+
+{% block body %}
+{% include 'admin/_navbar.html.twig' %}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>👮 Gestion des Agents</h2>
+<a href="{{ path('admin_agent_new') }}" class="btn btn-success">+ Nouvel Agent</a>
+    </div>
+
+    <div class="row text-center mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm p-3">
+                <h6>Total Agents</h6>
+                <h3>{{ stats.total_agents }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm p-3">
+                <h6>Agents Actifs</h6>
+                <h3>{{ stats.active_agents }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm p-3">
+                <h6>Heures Totales</h6>
+                <h3>{{ stats.total_hours }}h</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm p-3">
+                <h6>Salaire Total</h6>
+                <h3>€{{ stats.total_salary }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <h4>Liste des Agents</h4>
+    <table class="table table-striped mt-3">
+        <thead class="table-dark">
+            <tr>
+                <th>Agent</th>
+                <th>Contact</th>
+                <th>Site</th>
+                <th>Salaire/h</th>
+                <th>Heures</th>
+                <th>Statut</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for agent in agents %}
+                <tr>
+                    <td>{{ agent.firstName }} {{ agent.lastName }}</td>
+                    <td>{{ agent.phone }}</td>
+                    <td>{{ agent.site.name }}</td>
+                    <td>€{{ agent.hourlyRate }}</td>
+                    <td>140h</td>
+                    <td>{{ agent.status }}</td>
+                    <td>
+    <a href="{{ path('admin_agent_edit', {id: agent.id}) }}" class="btn btn-sm btn-primary">✏️</a>
+    <form method="post" action="{{ path('admin_agent_delete', {id: agent.id}) }}" style="display:inline-block;">
+        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ agent.id) }}">
+        <button class="btn btn-sm btn-danger">🗑️</button>
+    </form>
+</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="7" class="text-center text-muted">Aucun agent trouvé.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
