@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\AgentRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: AgentRepository::class)]
@@ -39,7 +41,19 @@ class Agent
     #[ORM\Column(length: 50)]
     private ?string $status = null; // ACTIF, INACTIF
 
-    // Getters & setters …
+    #[ORM\OneToMany(mappedBy: 'agent', targetEntity: Shift::class, cascade: ['remove'], orphanRemoval: true)]
+    private Collection $shifts;
+
+    #[ORM\OneToMany(mappedBy: 'agent', targetEntity: Payment::class, cascade: ['remove'], orphanRemoval: true)]
+    private Collection $payments;
+
+    public function __construct()
+    {
+        $this->shifts = new ArrayCollection();
+        $this->payments = new ArrayCollection();
+    }
+
+    // Getters / Setters …
 
     public function getId(): ?int
     {
@@ -54,7 +68,6 @@ class Agent
     public function setFirstName(string $firstName): self
     {
         $this->firstName = $firstName;
-
         return $this;
     }
 
@@ -66,7 +79,6 @@ class Agent
     public function setLastName(string $lastName): self
     {
         $this->lastName = $lastName;
-
         return $this;
     }
 
@@ -78,7 +90,6 @@ class Agent
     public function setPhone(?string $phone): self
     {
         $this->phone = $phone;
-
         return $this;
     }
 
@@ -90,7 +101,6 @@ class Agent
     public function setHourlyRate(?string $hourlyRate): self
     {
         $this->hourlyRate = $hourlyRate;
-
         return $this;
     }
 
@@ -102,7 +112,6 @@ class Agent
     public function setHireDate(?\DateTimeInterface $hireDate): self
     {
         $this->hireDate = $hireDate;
-
         return $this;
     }
 
@@ -114,7 +123,6 @@ class Agent
     public function setStatus(string $status): self
     {
         $this->status = $status;
-
         return $this;
     }
 
@@ -126,7 +134,6 @@ class Agent
     public function setUser(?User $user): self
     {
         $this->user = $user;
-
         return $this;
     }
 
@@ -138,7 +145,22 @@ class Agent
     public function setSite(?Site $site): self
     {
         $this->site = $site;
-
         return $this;
+    }
+
+    /**
+     * @return Collection<int, Shift>
+     */
+    public function getShifts(): Collection
+    {
+        return $this->shifts;
+    }
+
+    /**
+     * @return Collection<int, Payment>
+     */
+    public function getPayments(): Collection
+    {
+        return $this->payments;
     }
 }

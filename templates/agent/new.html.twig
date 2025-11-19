@@ -1,11 +1,27 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}New Agent{% endblock %}
+{% block title %}Nouvel Agent - Phoenix Security{% endblock %}
 
 {% block body %}
-    <h1>Create new Agent</h1>
+    {% include 'admin/_navbar.html.twig' %}
 
-    {{ include('agent/_form.html.twig') }}
+    <div class="container py-4">
+        <h2>➕ Ajouter un nouvel agent</h2>
 
-    <a href="{{ path('app_agent_index') }}">back to list</a>
+        <div class="card p-4 mt-3 shadow-sm">
+            {{ form_start(form) }}
+                {{ form_row(form.firstName) }}
+                {{ form_row(form.lastName) }}
+                {{ form_row(form.phone) }}
+                {{ form_row(form.hourlyRate) }}
+                {{ form_row(form.hireDate) }}
+                {{ form_row(form.status) }}
+                {{ form_row(form.site) }}
+
+                <button class="btn btn-dark mt-3">Enregistrer</button>
+            {{ form_end(form) }}
+        </div>
+
+        <a href="{{ path('admin_agents') }}" class="btn btn-link mt-3">← Retour à la liste des agents</a>
+    </div>
 {% endblock %}

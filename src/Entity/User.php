@@ -88,4 +88,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         // rien à effacer
     }
+    public function __toString(): string
+{
+    return $this->email ?? '';
+}
 }

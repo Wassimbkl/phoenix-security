@@ -41,4 +41,48 @@
         </div>
     </div>
 </div>
+<hr class="my-5">
+
+<h3>🕒 Activités récentes</h3>
+<ul class="list-group mb-5">
+    {% for s in recentActivities %}
+        <li class="list-group-item">
+            <strong>{{ s.agent.firstName }} {{ s.agent.lastName }}</strong>
+            — Shift {{ s.status|lower }} ({{ s.site.name }})
+            <br>
+            <small class="text-muted">
+                {{ s.shiftDate|date("d/m/Y") }} • {{ s.startTime|date("H:i") }}
+            </small>
+        </li>
+    {% else %}
+        <li class="list-group-item text-muted">Aucune activité récente.</li>
+    {% endfor %}
+</ul>
+
+<h3>⚠️ Alertes</h3>
+<ul class="list-group mb-5">
+    <li class="list-group-item">
+        {{ alerts.unassigned }} shifts non assignés pour demain
+    </li>
+    <li class="list-group-item">
+        {{ alerts.late_agents }} agents potentiellement en retard
+    </li>
+    <li class="list-group-item">
+        Rapport mensuel disponible
+    </li>
+</ul>
+
+<h3>🏢 Aperçu des Sites</h3>
+<div class="row">
+    {% for site in sites %}
+        <div class="col-md-4 mb-3">
+            <div class="card shadow p-3">
+                <h5>{{ site.name }}</h5>
+                <p>👮 {{ site.agents }} agents</p>
+                <p>{{ site.hours }}</p>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
 {% endblock %}
