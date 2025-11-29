@@ -1,0 +1,126 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+<!-- Sidebar -->
+<aside class="sidebar">
+    <div class="sidebar-brand">
+        <div class="sidebar-brand-icon">🔐</div>
+        <div class="sidebar-brand-text">
+            Phoenix Security
+            <small>Gestion des agents</small>
+        </div>
+    </div>
+    
+    <nav class="sidebar-menu">
+        <div class="sidebar-menu-title">Menu principal</div>
+        
+        <a href="{{ path('admin_dashboard') }}" class="sidebar-link {{ app.request.get('_route') == 'admin_dashboard' ? 'active' : '' }}">
+            <i class="bi bi-grid-1x2-fill"></i>
+            <span>Tableau de bord</span>
+        </a>
+        
+        <a href="{{ path('admin_agents') }}" class="sidebar-link {{ app.request.get('_route') starts with 'admin_agent' ? 'active' : '' }}">
+            <i class="bi bi-people-fill"></i>
+            <span>Agents</span>
+        </a>
+        
+        <a href="{{ path('admin_planning') }}" class="sidebar-link {{ app.request.get('_route') starts with 'admin_planning' ? 'active' : '' }}">
+            <i class="bi bi-calendar3"></i>
+            <span>Planning</span>
+        </a>
+        
+        <a href="{{ path('admin_sites') }}" class="sidebar-link {{ app.request.get('_route') starts with 'admin_site' ? 'active' : '' }}">
+            <i class="bi bi-building"></i>
+            <span>Sites</span>
+        </a>
+        
+        <a href="{{ path('admin_payments') }}" class="sidebar-link {{ app.request.get('_route') starts with 'admin_payment' ? 'active' : '' }}">
+            <i class="bi bi-credit-card-2-front-fill"></i>
+            <span>Paiements</span>
+        </a>
+        
+        <div class="sidebar-menu-title mt-4">Administration</div>
+        
+        <a href="{{ path('admin_users') }}" class="sidebar-link {{ app.request.get('_route') starts with 'admin_user' ? 'active' : '' }}">
+            <i class="bi bi-person-gear"></i>
+            <span>Utilisateurs</span>
+        </a>
+        
+        <a href="{{ path('admin_reports') }}" class="sidebar-link {{ app.request.get('_route') starts with 'admin_report' ? 'active' : '' }}">
+            <i class="bi bi-file-earmark-bar-graph"></i>
+            <span>Rapports</span>
+        </a>
+    </nav>
+    
+    <div class="sidebar-user">
+        <div class="sidebar-user-info">
+            <div class="sidebar-user-avatar">
+                {{ app.user.email|first|upper }}
+            </div>
+            <div>
+                <div class="sidebar-user-name">{{ app.user.email|split('@')[0]|capitalize }}</div>
+                <div class="sidebar-user-role">{{ app.user.role }}</div>
+            </div>
+            <a href="{{ path('app_logout') }}" class="ms-auto text-white-50" title="Déconnexion">
+                <i class="bi bi-box-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+</aside>
+
+<!-- Main Content -->
+<main class="main-content">
+    <!-- Top Navbar -->
+    <header class="top-navbar">
+        <div>
+            <button class="btn btn-link d-lg-none p-0 me-3" onclick="toggleSidebar()">
+                <i class="bi bi-list fs-4"></i>
+            </button>
+            <h1 class="page-title d-inline-block align-middle">
+                {% block page_title %}Dashboard{% endblock %}
+                <small>{% block page_subtitle %}{% endblock %}</small>
+            </h1>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="dropdown">
+                <button class="btn btn-light position-relative" data-bs-toggle="dropdown">
+                    <i class="bi bi-bell"></i>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
+                        3
+                    </span>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end p-3" style="width: 300px;">
+                    <h6 class="dropdown-header">Notifications</h6>
+                    <div class="dropdown-item small">
+                        <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                        2 shifts non assignés demain
+                    </div>
+                    <div class="dropdown-item small">
+                        <i class="bi bi-clock text-danger me-2"></i>
+                        1 agent en retard
+                    </div>
+                    <div class="dropdown-item small">
+                        <i class="bi bi-file-text text-info me-2"></i>
+                        Rapport mensuel disponible
+                    </div>
+                </div>
+            </div>
+            <span class="text-muted small">{{ "now"|date("d/m/Y") }}</span>
+        </div>
+    </header>
+    
+    <!-- Content -->
+    <div class="content-area">
+        {% for label, messages in app.flashes %}
+            {% for message in messages %}
+                <div class="alert alert-{{ label }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endfor %}
+        
+        {% block content %}{% endblock %}
+    </div>
+</main>
+{% endblock %}

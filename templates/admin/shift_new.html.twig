@@ -1,0 +1,78 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}Nouveau shift - Phoenix Security{% endblock %}
+
+{% block page_title %}Nouveau shift{% endblock %}
+{% block page_subtitle %}Planifier une mission{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-calendar-plus text-primary me-2"></i>Planifier un shift
+            </div>
+            <div class="card-body">
+                {{ form_start(form, {'attr': {'class': 'needs-validation', 'novalidate': 'novalidate'}}) }}
+                
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <label class="form-label required">Agent</label>
+                        {{ form_widget(form.agent, {'attr': {'class': 'form-select'}}) }}
+                        {{ form_errors(form.agent) }}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label required">Site</label>
+                        {{ form_widget(form.site, {'attr': {'class': 'form-select'}}) }}
+                        {{ form_errors(form.site) }}
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label required">Date</label>
+                        {{ form_widget(form.shiftDate, {'attr': {'class': 'form-control'}}) }}
+                        {{ form_errors(form.shiftDate) }}
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label required">Heure de début</label>
+                        {{ form_widget(form.startTime, {'attr': {'class': 'form-control'}}) }}
+                        {{ form_errors(form.startTime) }}
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label required">Heure de fin</label>
+                        {{ form_widget(form.endTime, {'attr': {'class': 'form-control'}}) }}
+                        {{ form_errors(form.endTime) }}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label required">Type de shift</label>
+                        {{ form_widget(form.type, {'attr': {'class': 'form-select'}}) }}
+                        {{ form_errors(form.type) }}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label required">Statut</label>
+                        {{ form_widget(form.status, {'attr': {'class': 'form-select'}}) }}
+                        {{ form_errors(form.status) }}
+                    </div>
+                </div>
+                
+                <hr class="my-4">
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{{ path('admin_planning') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Retour
+                    </a>
+                    <button type="submit" class="btn btn-phoenix">
+                        <i class="bi bi-check-lg me-1"></i>Créer le shift
+                    </button>
+                </div>
+                
+                {{ form_end(form) }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

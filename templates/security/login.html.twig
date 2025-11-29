@@ -2,57 +2,267 @@
 
 {% block title %}Connexion - Phoenix Security{% endblock %}
 
+{% block stylesheets %}
+<style>
+    .login-page {
+        min-height: 100vh;
+        display: flex;
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    }
+    
+    .login-left {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 3rem;
+        color: white;
+    }
+    
+    .login-right {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8fafc;
+        padding: 2rem;
+    }
+    
+    .login-card {
+        width: 100%;
+        max-width: 420px;
+        background: white;
+        border-radius: 20px;
+        padding: 2.5rem;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .login-brand {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 3rem;
+    }
+    
+    .login-brand-icon {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #4f46e5 0%, #0ea5e9 100%);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+    }
+    
+    .login-brand-text h1 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin: 0;
+    }
+    
+    .login-brand-text p {
+        margin: 0;
+        opacity: 0.7;
+        font-size: 0.9rem;
+    }
+    
+    .login-features {
+        margin-top: 3rem;
+    }
+    
+    .login-feature {
+        display: flex;
+        align-items: flex-start;
+        gap: 15px;
+        margin-bottom: 1.5rem;
+    }
+    
+    .login-feature-icon {
+        width: 40px;
+        height: 40px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    
+    .login-feature h4 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    
+    .login-feature p {
+        font-size: 0.85rem;
+        opacity: 0.7;
+        margin: 0;
+    }
+    
+    .form-floating > label {
+        color: #64748b;
+    }
+    
+    .form-floating > .form-control:focus ~ label,
+    .form-floating > .form-control:not(:placeholder-shown) ~ label {
+        color: #4f46e5;
+    }
+    
+    .btn-login {
+        background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+        border: none;
+        padding: 0.85rem 1.5rem;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-login:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
+    }
+    
+    @media (max-width: 992px) {
+        .login-left {
+            display: none;
+        }
+        
+        .login-right {
+            flex: 1;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        }
+    }
+</style>
+{% endblock %}
+
 {% block body %}
-<div class="d-flex justify-content-center align-items-center vh-100" style="background-color:#eef3ff;">
-    <div class="card shadow p-4" style="width:400px; border-radius:12px;">
-        <div class="text-center mb-4">
-            <div class="mb-3" style="font-size:32px; color:#4f46e5;">🔒</div>
-            <h2 class="fw-bold mb-1">Phoenix Security</h2>
-            <p class="text-muted mb-0">Système de gestion des agents</p>
+<div class="login-page">
+    <!-- Left Side - Branding -->
+    <div class="login-left">
+        <div class="login-brand">
+            <div class="login-brand-icon">🔐</div>
+            <div class="login-brand-text">
+                <h1>Phoenix Security</h1>
+                <p>Système de gestion des agents</p>
+            </div>
         </div>
-
-        <h5 class="fw-semibold">Connexion</h5>
-        <p class="text-muted mb-4" style="font-size:0.9rem;">
-            Connectez-vous pour accéder au système de gestion
-        </p>
-
-        {% if error %}
-            <div class="alert alert-danger py-2">
-                Identifiants invalides.
+        
+        <div class="login-features">
+            <div class="login-feature">
+                <div class="login-feature-icon">
+                    <i class="bi bi-calendar-check"></i>
+                </div>
+                <div>
+                    <h4>Gestion des plannings</h4>
+                    <p>Créez et gérez les shifts de vos agents en quelques clics</p>
+                </div>
             </div>
-        {% endif %}
-
-        <form method="post" action="{{ path('app_login') }}">
-            <div class="mb-3">
-                <label for="username" class="form-label">Adresse e-mail</label>
-                <input
-                    type="text"
-                    id="username"
-                    name="_username"
-                    class="form-control"
-                    value="{{ last_username }}"
-                    required
-                    autofocus
-                    placeholder="admin@example.com"
-                >
+            
+            <div class="login-feature">
+                <div class="login-feature-icon">
+                    <i class="bi bi-clock-history"></i>
+                </div>
+                <div>
+                    <h4>Calcul automatique des heures</h4>
+                    <p>Heures normales, heures de nuit, tout est calculé automatiquement</p>
+                </div>
             </div>
-
-            <div class="mb-3">
-                <label for="password" class="form-label">Mot de passe</label>
-                <input
-                    type="password"
-                    id="password"
-                    name="_password"
-                    class="form-control"
-                    required
-                    placeholder="••••••••"
-                >
+            
+            <div class="login-feature">
+                <div class="login-feature-icon">
+                    <i class="bi bi-credit-card-2-front"></i>
+                </div>
+                <div>
+                    <h4>Gestion des paiements</h4>
+                    <p>Génération automatique des fiches de paie mensuelles</p>
+                </div>
             </div>
-
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
-
-            <button class="btn btn-dark w-100 fw-semibold" type="submit">Se connecter</button>
-        </form>
+            
+            <div class="login-feature">
+                <div class="login-feature-icon">
+                    <i class="bi bi-bar-chart"></i>
+                </div>
+                <div>
+                    <h4>Rapports & statistiques</h4>
+                    <p>Suivez l'activité de votre entreprise en temps réel</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-auto pt-5">
+            <p class="small opacity-50">© {{ "now"|date("Y") }} Phoenix Security. Tous droits réservés.</p>
+        </div>
+    </div>
+    
+    <!-- Right Side - Login Form -->
+    <div class="login-right">
+        <div class="login-card">
+            <div class="text-center mb-4 d-lg-none">
+                <div class="login-brand-icon mx-auto mb-3">🔐</div>
+                <h2 class="fw-bold">Phoenix Security</h2>
+            </div>
+            
+            <h3 class="fw-bold mb-1">Connexion</h3>
+            <p class="text-muted mb-4">Accédez à votre espace de gestion</p>
+            
+            {% if error %}
+                <div class="alert alert-danger d-flex align-items-center" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <div>{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+                </div>
+            {% endif %}
+            
+            <form method="post" action="{{ path('app_login') }}">
+                <div class="form-floating mb-3">
+                    <input type="email" 
+                           class="form-control" 
+                           id="username" 
+                           name="_username" 
+                           placeholder="nom@exemple.com"
+                           value="{{ last_username }}"
+                           required
+                           autofocus>
+                    <label for="username">
+                        <i class="bi bi-envelope me-2"></i>Adresse e-mail
+                    </label>
+                </div>
+                
+                <div class="form-floating mb-4">
+                    <input type="password" 
+                           class="form-control" 
+                           id="password" 
+                           name="_password" 
+                           placeholder="Mot de passe"
+                           required>
+                    <label for="password">
+                        <i class="bi bi-lock me-2"></i>Mot de passe
+                    </label>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="remember" name="_remember_me">
+                        <label class="form-check-label small" for="remember">Se souvenir de moi</label>
+                    </div>
+                    <a href="#" class="small text-decoration-none" style="color: #4f46e5;">Mot de passe oublié ?</a>
+                </div>
+                
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+                
+                <button type="submit" class="btn btn-login btn-primary w-100">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Se connecter
+                </button>
+            </form>
+            
+            <div class="text-center mt-4">
+                <p class="small text-muted mb-0">
+                    Besoin d'aide ? Contactez l'administrateur
+                </p>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

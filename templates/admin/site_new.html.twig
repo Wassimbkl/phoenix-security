@@ -1,0 +1,66 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}Nouveau Site - Phoenix Security{% endblock %}
+
+{% block page_title %}Nouveau Site{% endblock %}
+{% block page_subtitle %}Ajouter un site de travail{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-building-add text-primary me-2"></i>
+                Informations du site
+            </div>
+            <div class="card-body">
+                {{ form_start(form, {'attr': {'class': 'row g-3'}}) }}
+                    <div class="col-12">
+                        <label class="form-label">Nom du site <span class="text-danger">*</span></label>
+                        {{ form_widget(form.name, {'attr': {'class': 'form-control', 'placeholder': 'Ex: Carrefour Marseille'}}) }}
+                        {{ form_errors(form.name) }}
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">Adresse</label>
+                        {{ form_widget(form.address, {'attr': {'class': 'form-control', 'placeholder': '123 Rue du Commerce'}}) }}
+                        {{ form_errors(form.address) }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Ville</label>
+                        {{ form_widget(form.city, {'attr': {'class': 'form-control', 'placeholder': 'Marseille'}}) }}
+                        {{ form_errors(form.city) }}
+                    </div>
+                    
+                    <div class="col-12">
+                        <hr class="my-2">
+                        <h6 class="text-muted"><i class="bi bi-person-lines-fill me-2"></i>Contact sur site</h6>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label">Nom du contact</label>
+                        {{ form_widget(form.contactName, {'attr': {'class': 'form-control', 'placeholder': 'M. Martin'}}) }}
+                        {{ form_errors(form.contactName) }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Téléphone du contact</label>
+                        {{ form_widget(form.contactPhone, {'attr': {'class': 'form-control', 'placeholder': '04 91 XX XX XX'}}) }}
+                        {{ form_errors(form.contactPhone) }}
+                    </div>
+                    
+                    <div class="col-12">
+                        <hr class="my-3">
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-phoenix">
+                                <i class="bi bi-check-lg me-2"></i>Créer le site
+                            </button>
+                            <a href="{{ path('admin_sites') }}" class="btn btn-light">
+                                <i class="bi bi-x-lg me-2"></i>Annuler
+                            </a>
+                        </div>
+                    </div>
+                {{ form_end(form) }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

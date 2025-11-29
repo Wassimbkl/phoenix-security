@@ -1,0 +1,99 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}Modifier {{ site.name }} - Phoenix Security{% endblock %}
+
+{% block page_title %}Modifier le site{% endblock %}
+{% block page_subtitle %}{{ site.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-pencil text-primary me-2"></i>
+                Informations du site
+            </div>
+            <div class="card-body">
+                {{ form_start(form, {'attr': {'class': 'row g-3'}}) }}
+                    <div class="col-12">
+                        <label class="form-label">Nom du site <span class="text-danger">*</span></label>
+                        {{ form_widget(form.name, {'attr': {'class': 'form-control'}}) }}
+                        {{ form_errors(form.name) }}
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">Adresse</label>
+                        {{ form_widget(form.address, {'attr': {'class': 'form-control'}}) }}
+                        {{ form_errors(form.address) }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Ville</label>
+                        {{ form_widget(form.city, {'attr': {'class': 'form-control'}}) }}
+                        {{ form_errors(form.city) }}
+                    </div>
+                    
+                    <div class="col-12">
+                        <hr class="my-2">
+                        <h6 class="text-muted"><i class="bi bi-person-lines-fill me-2"></i>Contact sur site</h6>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label">Nom du contact</label>
+                        {{ form_widget(form.contactName, {'attr': {'class': 'form-control'}}) }}
+                        {{ form_errors(form.contactName) }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Téléphone du contact</label>
+                        {{ form_widget(form.contactPhone, {'attr': {'class': 'form-control'}}) }}
+                        {{ form_errors(form.contactPhone) }}
+                    </div>
+                    
+                    <div class="col-12">
+                        <hr class="my-3">
+                        <div class="d-flex justify-content-between">
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-phoenix">
+                                    <i class="bi bi-check-lg me-2"></i>Enregistrer
+                                </button>
+                                <a href="{{ path('admin_sites') }}" class="btn btn-light">
+                                    <i class="bi bi-x-lg me-2"></i>Annuler
+                                </a>
+                            </div>
+                            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                                <i class="bi bi-trash me-2"></i>Supprimer
+                            </button>
+                        </div>
+                    </div>
+                {{ form_end(form) }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle text-danger me-2"></i>
+                    Confirmer la suppression
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer le site <strong>{{ site.name }}</strong> ?</p>
+                <p class="text-muted small">Les agents associés devront être réassignés.</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                <form method="post" action="{{ path('admin_site_delete', {id: site.id}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ site.id) }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Supprimer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

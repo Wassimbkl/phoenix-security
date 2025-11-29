@@ -1,0 +1,187 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}Rapports - Phoenix Security{% endblock %}
+
+{% block page_title %}Rapports{% endblock %}
+{% block page_subtitle %}Statistiques et exports{% endblock %}
+
+{% block content %}
+<!-- Stats du mois -->
+<div class="row g-4 mb-4">
+    <div class="col-12 col-md-4">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-card-value">{{ stats.total_shifts }}</div>
+                    <div class="stat-card-label">Shifts ce mois</div>
+                </div>
+                <div class="stat-card-icon primary">
+                    <i class="bi bi-calendar-check"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-card-value">{{ stats.completed_shifts }}</div>
+                    <div class="stat-card-label">Shifts effectués</div>
+                </div>
+                <div class="stat-card-icon success">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-card-value">{{ stats.completion_rate }}%</div>
+                    <div class="stat-card-label">Taux de réalisation</div>
+                </div>
+                <div class="stat-card-icon info">
+                    <i class="bi bi-graph-up"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Rapports disponibles -->
+<div class="row g-4">
+    <div class="col-12 col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-file-earmark-bar-graph text-primary me-2"></i>
+                Rapport mensuel des heures
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Génère un rapport détaillé des heures travaillées par agent pour un mois donné.</p>
+                
+                <form class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label">Période</label>
+                        <input type="month" class="form-control" value="{{ currentMonth }}">
+                    </div>
+                    <div class="col-12">
+                        <button type="button" class="btn btn-phoenix w-100" disabled>
+                            <i class="bi bi-download me-2"></i>Télécharger PDF
+                        </button>
+                        <small class="text-muted d-block mt-2">
+                            <i class="bi bi-info-circle me-1"></i>Fonctionnalité disponible prochainement
+                        </small>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-12 col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-file-earmark-spreadsheet text-success me-2"></i>
+                Export des paiements
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Exporte la liste des paiements au format Excel pour la comptabilité.</p>
+                
+                <form class="row g-3">
+                    <div class="col-6">
+                        <label class="form-label">De</label>
+                        <input type="month" class="form-control" value="{{ currentMonth }}">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">À</label>
+                        <input type="month" class="form-control" value="{{ currentMonth }}">
+                    </div>
+                    <div class="col-12">
+                        <button type="button" class="btn btn-success w-100" disabled>
+                            <i class="bi bi-file-earmark-excel me-2"></i>Exporter Excel
+                        </button>
+                        <small class="text-muted d-block mt-2">
+                            <i class="bi bi-info-circle me-1"></i>Fonctionnalité disponible prochainement
+                        </small>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-12 col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-person-badge text-info me-2"></i>
+                Fiche agent individuelle
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Génère une fiche récapitulative pour un agent spécifique.</p>
+                
+                <form class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label">Agent</label>
+                        <select class="form-select">
+                            <option value="">Sélectionner un agent</option>
+                            {% for agent in agents %}
+                                <option value="{{ agent.id }}">{{ agent.firstName }} {{ agent.lastName }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Période</label>
+                        <input type="month" class="form-control" value="{{ currentMonth }}">
+                    </div>
+                    <div class="col-12">
+                        <button type="button" class="btn btn-info w-100 text-white" disabled>
+                            <i class="bi bi-printer me-2"></i>Imprimer la fiche
+                        </button>
+                        <small class="text-muted d-block mt-2">
+                            <i class="bi bi-info-circle me-1"></i>Fonctionnalité disponible prochainement
+                        </small>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-12 col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-building text-warning me-2"></i>
+                Rapport par site
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Vue d'ensemble des heures et coûts par site de travail.</p>
+                
+                <form class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label">Période</label>
+                        <input type="month" class="form-control" value="{{ currentMonth }}">
+                    </div>
+                    <div class="col-12">
+                        <button type="button" class="btn btn-warning w-100" disabled>
+                            <i class="bi bi-bar-chart me-2"></i>Générer le rapport
+                        </button>
+                        <small class="text-muted d-block mt-2">
+                            <i class="bi bi-info-circle me-1"></i>Fonctionnalité disponible prochainement
+                        </small>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Aide -->
+<div class="card mt-4">
+    <div class="card-body">
+        <h6><i class="bi bi-lightbulb text-warning me-2"></i>Conseils</h6>
+        <ul class="mb-0 small text-muted">
+            <li>Les rapports PDF incluent automatiquement le logo de l'entreprise et les informations légales</li>
+            <li>L'export Excel est compatible avec tous les logiciels de comptabilité courants</li>
+            <li>Les fiches agents peuvent être utilisées comme justificatifs de paiement</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

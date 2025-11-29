@@ -1,0 +1,231 @@
+{% extends 'agent_dashboard/layout.html.twig' %}
+
+{% block title %}Mon planning - Phoenix Security{% endblock %}
+
+{% block page_title %}Mon planning{% endblock %}
+{% block page_subtitle %}Vos shifts et missions{% endblock %}
+
+{% block content %}
+<!-- Filtres -->
+<div class="card mb-4">
+    <div class="card-body py-3">
+        <form class="row g-3 align-items-center">
+            <div class="col-auto">
+                <label class="visually-hidden" for="month">Mois</label>
+                <select class="form-select" id="month" name="month"
+                        hx-get="{{ path('agent_planning') }}"
+                        hx-target="#planning-content"
+                        hx-select="#planning-content"
+                        hx-swap="outerHTML"
+                        hx-include="[name='year']">
+                    <option value="1" {{ currentMonth == 1 ? 'selected' : '' }}>Janvier</option>
+                    <option value="2" {{ currentMonth == 2 ? 'selected' : '' }}>Février</option>
+                    <option value="3" {{ currentMonth == 3 ? 'selected' : '' }}>Mars</option>
+                    <option value="4" {{ currentMonth == 4 ? 'selected' : '' }}>Avril</option>
+                    <option value="5" {{ currentMonth == 5 ? 'selected' : '' }}>Mai</option>
+                    <option value="6" {{ currentMonth == 6 ? 'selected' : '' }}>Juin</option>
+                    <option value="7" {{ currentMonth == 7 ? 'selected' : '' }}>Juillet</option>
+                    <option value="8" {{ currentMonth == 8 ? 'selected' : '' }}>Août</option>
+                    <option value="9" {{ currentMonth == 9 ? 'selected' : '' }}>Septembre</option>
+                    <option value="10" {{ currentMonth == 10 ? 'selected' : '' }}>Octobre</option>
+                    <option value="11" {{ currentMonth == 11 ? 'selected' : '' }}>Novembre</option>
+                    <option value="12" {{ currentMonth == 12 ? 'selected' : '' }}>Décembre</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="visually-hidden" for="year">Année</label>
+                <select class="form-select" id="year" name="year"
+                        hx-get="{{ path('agent_planning') }}"
+                        hx-target="#planning-content"
+                        hx-select="#planning-content"
+                        hx-swap="outerHTML"
+                        hx-include="[name='month']">
+                    {% for y in (currentYear - 1)..(currentYear + 1) %}
+                        <option value="{{ y }}" {{ y == currentYear ? 'selected' : '' }}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto ms-auto">
+                <span class="badge bg-light text-dark fs-6 px-3 py-2">
+                    <i class="bi bi-calendar3 me-2"></i>{{ shifts|length }} shift(s)
+                </span>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="planning-content">
+    <div class="row g-4">
+        <!-- Calendrier mensuel -->
+        <div class="col-12 col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-calendar-month text-primary me-2"></i>Calendrier du mois
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered mb-0">
+                            <thead>
+                                <tr class="text-center bg-light">
+                                    <th>Lun</th>
+                                    <th>Mar</th>
+                                    <th>Mer</th>
+                                    <th>Jeu</th>
+                                    <th>Ven</th>
+                                    <th>Sam</th>
+                                    <th>Dim</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set firstDayOfMonth = date(currentYear ~ '-' ~ currentMonth ~ '-01') %}
+                                {% set daysInMonth = firstDayOfMonth|date('t') %}
+                                {% set startingDay = (firstDayOfMonth|date('N'))|number_format(0) %}
+                                
+                                {% set dayCounter = 1 %}
+                                {% for week in 0..5 %}
+                                    {% if dayCounter <= daysInMonth %}
+                                        <tr>
+                                            {% for day in 1..7 %}
+                                                {% if (week == 0 and day < startingDay) or dayCounter > daysInMonth %}
+                                                    <td class="calendar-day disabled"></td>
+                                                {% else %}
+                                                    {% set currentDate = date(currentYear ~ '-' ~ currentMonth ~ '-' ~ dayCounter) %}
+                                                    {% set hasShift = false %}
+                                                    {% set dayShifts = [] %}
+                                                    {% for shift in shifts %}
+                                                        {% if shift.shiftDate|date('Y-m-d') == currentDate|date('Y-m-d') %}
+                                                            {% set hasShift = true %}
+                                                            {% set dayShifts = dayShifts|merge([shift]) %}
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                    
+                                                    <td class="calendar-day {{ hasShift ? 'has-shift' : '' }} {{ 'today'|date('Y-m-d') == currentDate|date('Y-m-d') ? 'today' : '' }}">
+                                                        <div class="calendar-day-number">{{ dayCounter }}</div>
+                                                        {% if hasShift %}
+                                                            {% for shift in dayShifts %}
+                                                                <div class="calendar-shift {{ shift.type|lower }}">
+                                                                    {{ shift.startTime|date('H:i') }}<br>
+                                                                    <small>{{ shift.site.name|slice(0, 10) }}...</small>
+                                                                </div>
+                                                            {% endfor %}
+                                                        {% endif %}
+                                                    </td>
+                                                    {% set dayCounter = dayCounter + 1 %}
+                                                {% endif %}
+                                            {% endfor %}
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Liste des shifts -->
+        <div class="col-12 col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-list-check text-primary me-2"></i>Détails des shifts
+                </div>
+                <div class="card-body p-0">
+                    {% if shifts|length > 0 %}
+                        <div class="list-group list-group-flush" style="max-height: 500px; overflow-y: auto;">
+                            {% for shift in shifts %}
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <div class="fw-bold">{{ shift.shiftDate|date('d/m/Y') }}</div>
+                                            <div class="small">
+                                                <i class="bi bi-clock me-1"></i>
+                                                {{ shift.startTime|date('H:i') }} - {{ shift.endTime|date('H:i') }}
+                                            </div>
+                                            <div class="small text-muted">
+                                                <i class="bi bi-geo-alt me-1"></i>
+                                                {{ shift.site.name }}
+                                            </div>
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="badge {{ shift.type == 'NUIT' ? 'bg-dark' : 'bg-primary' }} mb-1">
+                                                {{ shift.type }}
+                                            </span>
+                                            <br>
+                                            <span class="badge-status {{ shift.status|lower }}">
+                                                {{ shift.status }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4 text-muted">
+                            <i class="bi bi-calendar-x fs-2"></i>
+                            <p class="mt-2 mb-0">Aucun shift ce mois-ci</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Légende -->
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6 class="mb-3"><i class="bi bi-info-circle me-2"></i>Légende</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge bg-primary">JOUR</span>
+                        <span class="badge bg-dark">NUIT</span>
+                        <span class="badge-status planifie">PLANIFIÉ</span>
+                        <span class="badge-status confirme">CONFIRMÉ</span>
+                        <span class="badge-status termine">TERMINÉ</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .calendar-day {
+        height: 100px;
+        vertical-align: top;
+        padding: 5px !important;
+        position: relative;
+    }
+    .calendar-day.disabled {
+        background: #f8f9fa;
+    }
+    .calendar-day.today {
+        background: rgba(79, 70, 229, 0.1);
+    }
+    .calendar-day.has-shift {
+        background: rgba(79, 70, 229, 0.05);
+    }
+    .calendar-day-number {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: var(--phoenix-text);
+    }
+    .calendar-day.today .calendar-day-number {
+        background: var(--phoenix-primary);
+        color: white;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .calendar-shift {
+        font-size: 0.7rem;
+        padding: 2px 4px;
+        border-radius: 4px;
+        margin-top: 4px;
+        background: var(--phoenix-primary);
+        color: white;
+    }
+    .calendar-shift.nuit {
+        background: #1e293b;
+    }
+</style>
+{% endblock %}

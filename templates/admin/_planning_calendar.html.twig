@@ -1,0 +1,131 @@
+{% set today = 'now'|date('Y-m-d') %}
+{% set days = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'] %}
+
+{% if view == 'week' %}
+    <!-- Vue Semaine -->
+    <div class="table-responsive">
+        <table class="table table-bordered mb-0" style="table-layout: fixed;">
+            <thead>
+                <tr>
+                    {% set weekStart = startDate %}
+                    {% for i in 0..6 %}
+                        {% set dayDate = weekStart|date_modify('+' ~ i ~ ' days') %}
+                        <th class="text-center py-3 {{ dayDate|date('Y-m-d') == today ? 'bg-primary bg-opacity-10' : '' }}" style="width: 14.28%;">
+                            <div class="fw-semibold">{{ days[i] }}</div>
+                            <div class="fs-4 {{ dayDate|date('Y-m-d') == today ? 'text-primary' : '' }}">{{ dayDate|date('d') }}</div>
+                            <small class="text-muted">{{ dayDate|date('M') }}</small>
+                        </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    {% for i in 0..6 %}
+                        {% set dayDate = weekStart|date_modify('+' ~ i ~ ' days') %}
+                        {% set dateKey = dayDate|date('Y-m-d') %}
+                        <td class="p-2 align-top {{ dateKey == today ? 'bg-primary bg-opacity-10' : '' }}" style="min-height: 150px; height: 150px;">
+                            {% if shiftsByDate[dateKey] is defined %}
+                                {% for shift in shiftsByDate[dateKey] %}
+                                    <a href="{{ path('admin_shift_edit', {id: shift.id}) }}" 
+                                       class="calendar-shift {{ shift.type|lower }} mb-2 text-decoration-none" 
+                                       title="{{ shift.agent.firstName }} {{ shift.agent.lastName }}"
+                                       data-bs-toggle="tooltip">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="fw-medium">{{ shift.startTime|date('H:i') }}</span>
+                                            <span class="badge-status {{ shift.status|lower }}" style="font-size: 0.6rem; padding: 2px 6px;">
+                                                {{ shift.status }}
+                                            </span>
+                                        </div>
+                                        <div class="small">{{ shift.agent.firstName|first }}. {{ shift.agent.lastName }}</div>
+                                        <div class="small opacity-75">
+                                            <i class="bi bi-geo-alt"></i> {{ shift.site.name }}
+                                        </div>
+                                    </a>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-center text-muted small py-4">
+                                    <i class="bi bi-calendar-x d-block mb-1"></i>
+                                    Aucun shift
+                                </div>
+                            {% endif %}
+                        </td>
+                    {% endfor %}
+                </tr>
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <!-- Vue Mois -->
+    <div class="calendar-grid">
+        <!-- En-têtes des jours -->
+        {% for day in days %}
+            <div class="calendar-header">{{ day }}</div>
+        {% endfor %}
+        
+        <!-- Jours du mois -->
+        {% set firstDay = startDate %}
+        {% set firstDayOfWeek = firstDay|date('N') %}
+        {% set daysInMonth = endDate|date('d') %}
+        
+        {# Jours du mois précédent #}
+        {% for i in 1..(firstDayOfWeek - 1) %}
+            {% set prevDay = firstDay|date_modify('-' ~ (firstDayOfWeek - i) ~ ' days') %}
+            <div class="calendar-day other-month">
+                <div class="calendar-day-number text-muted">{{ prevDay|date('d') }}</div>
+            </div>
+        {% endfor %}
+        
+        {# Jours du mois courant #}
+        {% for day in 1..daysInMonth %}
+            {% set currentDay = startDate|date_modify('+' ~ (day - 1) ~ ' days') %}
+            {% set dateKey = currentDay|date('Y-m-d') %}
+            {% set isToday = dateKey == today %}
+            
+            <div class="calendar-day {{ isToday ? 'today' : '' }}">
+                <div class="calendar-day-number {{ isToday ? 'text-primary' : '' }}">
+                    {{ day }}
+                    {% if isToday %}
+                        <span class="badge bg-primary ms-1" style="font-size: 0.6rem;">Aujourd'hui</span>
+                    {% endif %}
+                </div>
+                
+                {% if shiftsByDate[dateKey] is defined %}
+                    {% for shift in shiftsByDate[dateKey]|slice(0, 3) %}
+                        <a href="{{ path('admin_shift_edit', {id: shift.id}) }}" 
+                           class="calendar-shift {{ shift.type|lower }} text-decoration-none" 
+                           title="{{ shift.agent.firstName }} {{ shift.agent.lastName }} - {{ shift.startTime|date('H:i') }} à {{ shift.endTime|date('H:i') }}">
+                            {{ shift.startTime|date('H:i') }} {{ shift.agent.firstName|first }}.{{ shift.agent.lastName|first }}
+                        </a>
+                    {% endfor %}
+                    {% if shiftsByDate[dateKey]|length > 3 %}
+                        <div class="small text-muted text-center">
+                            +{{ shiftsByDate[dateKey]|length - 3 }} autre(s)
+                        </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        {% endfor %}
+        
+        {# Jours du mois suivant pour compléter la grille #}
+        {% set totalCells = (firstDayOfWeek - 1) + daysInMonth %}
+        {% set remainingCells = 7 - (totalCells % 7) %}
+        {% if remainingCells < 7 %}
+            {% for i in 1..remainingCells %}
+                <div class="calendar-day other-month">
+                    <div class="calendar-day-number text-muted">{{ i }}</div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+{% endif %}
+
+<!-- Légende -->
+<div class="p-3 border-top bg-light">
+    <div class="d-flex gap-4 justify-content-center small">
+        <div><span class="d-inline-block rounded me-1" style="width: 12px; height: 12px; background: var(--phoenix-primary);"></span> Shift jour</div>
+        <div><span class="d-inline-block rounded me-1" style="width: 12px; height: 12px; background: var(--phoenix-dark);"></span> Shift nuit</div>
+        <div><span class="badge-status prevu">Prévu</span></div>
+        <div><span class="badge-status effectue">Effectué</span></div>
+        <div><span class="badge-status absent">Absent</span></div>
+    </div>
+</div>

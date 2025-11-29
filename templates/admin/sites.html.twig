@@ -1,0 +1,144 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}Sites - Phoenix Security{% endblock %}
+
+{% block page_title %}Gestion des Sites{% endblock %}
+{% block page_subtitle %}{{ sites|length }} sites enregistrés{% endblock %}
+
+{% block content %}
+<!-- Actions -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="search-box" style="width: 300px;">
+        <i class="bi bi-search"></i>
+        <input type="text" class="form-control" placeholder="Rechercher un site..." id="searchSite">
+    </div>
+    <a href="{{ path('admin_site_new') }}" class="btn btn-phoenix">
+        <i class="bi bi-plus-lg me-2"></i>Nouveau site
+    </a>
+</div>
+
+<!-- Sites Grid -->
+<div class="row g-4" id="sites-grid">
+    {% for item in sites %}
+        {% set site = item.site %}
+        <div class="col-12 col-md-6 col-lg-4 site-card" data-name="{{ site.name|lower }}">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="stat-card-icon primary">
+                            <i class="bi bi-building"></i>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-link text-muted p-0" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a href="{{ path('admin_site_edit', {id: site.id}) }}" class="dropdown-item">
+                                        <i class="bi bi-pencil me-2"></i>Modifier
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <button class="dropdown-item text-danger" 
+                                            onclick="confirmDeleteSite({{ site.id }}, '{{ csrf_token('delete' ~ site.id) }}')">
+                                        <i class="bi bi-trash me-2"></i>Supprimer
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <h5 class="fw-semibold mb-2">{{ site.name }}</h5>
+                    
+                    {% if site.address or site.city %}
+                        <p class="text-muted small mb-2">
+                            <i class="bi bi-geo-alt me-1"></i>
+                            {{ site.address }}{% if site.address and site.city %}, {% endif %}{{ site.city }}
+                        </p>
+                    {% endif %}
+                    
+                    {% if site.contactName %}
+                        <p class="text-muted small mb-1">
+                            <i class="bi bi-person me-1"></i>{{ site.contactName }}
+                        </p>
+                    {% endif %}
+                    
+                    {% if site.contactPhone %}
+                        <p class="text-muted small mb-3">
+                            <i class="bi bi-telephone me-1"></i>{{ site.contactPhone }}
+                        </p>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <span class="badge bg-primary bg-opacity-10 text-primary">
+                            <i class="bi bi-people me-1"></i>{{ item.agentCount }} agent(s)
+                        </span>
+                        <a href="{{ path('admin_agents') }}?site={{ site.id }}" class="btn btn-sm btn-outline-primary">
+                            Voir les agents
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-building fs-1 text-muted"></i>
+                    <p class="mt-3 mb-2">Aucun site enregistré</p>
+                    <a href="{{ path('admin_site_new') }}" class="btn btn-phoenix">
+                        <i class="bi bi-plus me-1"></i>Ajouter un site
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteSiteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle text-danger me-2"></i>
+                    Confirmer la suppression
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer ce site ?</p>
+                <p class="text-muted small">Les agents associés devront être réassignés.</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                <form id="deleteSiteForm" method="post" style="display: inline;">
+                    <input type="hidden" name="_token" value="">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Supprimer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Recherche de site
+document.getElementById('searchSite').addEventListener('input', function(e) {
+    const search = e.target.value.toLowerCase();
+    document.querySelectorAll('.site-card').forEach(card => {
+        const name = card.dataset.name;
+        card.style.display = name.includes(search) ? '' : 'none';
+    });
+});
+
+function confirmDeleteSite(id, token) {
+    const form = document.getElementById('deleteSiteForm');
+    form.action = `/admin/sites/${id}/delete`;
+    form.querySelector('input[name="_token"]').value = token;
+    new bootstrap.Modal(document.getElementById('deleteSiteModal')).show();
+}
+</script>
+{% endblock %}

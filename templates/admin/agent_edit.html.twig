@@ -1,4 +1,131 @@
-{% extends 'base.html.twig' %}
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}Modifier {{ agent.firstName }} {{ agent.lastName }} - Phoenix Security{% endblock %}
+
+{% block page_title %}Modifier l'agent{% endblock %}
+{% block page_subtitle %}{{ agent.firstName }} {{ agent.lastName }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="bi bi-pencil text-primary me-2"></i>
+                    Informations de l'agent
+                </span>
+                <span class="badge-status {{ agent.status|lower }}">{{ agent.status }}</span>
+            </div>
+            <div class="card-body">
+                {{ form_start(form, {'attr': {'class': 'row g-3'}}) }}
+                    <div class="col-md-6">
+                        <label class="form-label">Prénom</label>
+                        {{ form_widget(form.firstName, {'attr': {'class': 'form-control'}}) }}
+                        {{ form_errors(form.firstName) }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Nom</label>
+                        {{ form_widget(form.lastName, {'attr': {'class': 'form-control'}}) }}
+                        {{ form_errors(form.lastName) }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Téléphone</label>
+                        {{ form_widget(form.phone, {'attr': {'class': 'form-control'}}) }}
+                        {{ form_errors(form.phone) }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Taux horaire</label>
+                        {{ form_widget(form.hourlyRate, {'attr': {'class': 'form-control'}}) }}
+                        {{ form_errors(form.hourlyRate) }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Site d'affectation</label>
+                        {{ form_widget(form.site, {'attr': {'class': 'form-select'}}) }}
+                        {{ form_errors(form.site) }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Statut</label>
+                        {{ form_widget(form.status, {'attr': {'class': 'form-select'}}) }}
+                        {{ form_errors(form.status) }}
+                    </div>
+                    
+                    <div class="col-12">
+                        <hr class="my-3">
+                        <div class="d-flex justify-content-between">
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-phoenix">
+                                    <i class="bi bi-check-lg me-2"></i>Enregistrer
+                                </button>
+                                <a href="{{ path('admin_agents') }}" class="btn btn-light">
+                                    <i class="bi bi-x-lg me-2"></i>Annuler
+                                </a>
+                            </div>
+                            <button type="button" class="btn btn-outline-danger"
+                                    onclick="confirmDelete({{ agent.id }}, '{{ csrf_token('delete' ~ agent.id) }}')">
+                                <i class="bi bi-trash me-2"></i>Supprimer
+                            </button>
+                        </div>
+                    </div>
+                {{ form_end(form) }}
+            </div>
+        </div>
+        
+        <!-- Agent Info -->
+        <div class="card mt-3">
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-4">
+                        <div class="text-muted small">Date d'embauche</div>
+                        <strong>{{ agent.hireDate ? agent.hireDate|date('d/m/Y') : 'N/A' }}</strong>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-muted small">Shifts effectués</div>
+                        <strong>{{ agent.shifts|length }}</strong>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-muted small">Paiements</div>
+                        <strong>{{ agent.payments|length }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle text-danger me-2"></i>
+                    Confirmer la suppression
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer <strong>{{ agent.firstName }} {{ agent.lastName }}</strong> ?</p>
+                <p class="text-muted small">Cette action est irréversible.</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                <form id="deleteForm" method="post" action="{{ path('admin_agent_delete', {id: agent.id}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ agent.id) }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Supprimer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(id, token) {
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+</script>
+{% endblock %}.html.twig' %}
 
 {% block title %}Modifier un Agent{% endblock %}
 

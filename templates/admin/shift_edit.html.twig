@@ -1,0 +1,114 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}Modifier shift - Phoenix Security{% endblock %}
+
+{% block page_title %}Modifier shift{% endblock %}
+{% block page_subtitle %}{{ shift.shiftDate|date('d/m/Y') }} - {{ shift.agent.firstName }} {{ shift.agent.lastName }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-calendar-event text-primary me-2"></i>Modifier le shift</span>
+                <span class="badge {{ shift.type == 'NUIT' ? 'bg-dark' : 'bg-primary' }}">{{ shift.type }}</span>
+            </div>
+            <div class="card-body">
+                {{ form_start(form, {'attr': {'class': 'needs-validation', 'novalidate': 'novalidate'}}) }}
+                
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <label class="form-label required">Agent</label>
+                        {{ form_widget(form.agent, {'attr': {'class': 'form-select'}}) }}
+                        {{ form_errors(form.agent) }}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label required">Site</label>
+                        {{ form_widget(form.site, {'attr': {'class': 'form-select'}}) }}
+                        {{ form_errors(form.site) }}
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label required">Date</label>
+                        {{ form_widget(form.shiftDate, {'attr': {'class': 'form-control'}}) }}
+                        {{ form_errors(form.shiftDate) }}
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label required">Heure de début</label>
+                        {{ form_widget(form.startTime, {'attr': {'class': 'form-control'}}) }}
+                        {{ form_errors(form.startTime) }}
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label required">Heure de fin</label>
+                        {{ form_widget(form.endTime, {'attr': {'class': 'form-control'}}) }}
+                        {{ form_errors(form.endTime) }}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label required">Type de shift</label>
+                        {{ form_widget(form.type, {'attr': {'class': 'form-select'}}) }}
+                        {{ form_errors(form.type) }}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label required">Statut</label>
+                        {{ form_widget(form.status, {'attr': {'class': 'form-select'}}) }}
+                        {{ form_errors(form.status) }}
+                    </div>
+                </div>
+                
+                <hr class="my-4">
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{{ path('admin_planning') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Retour
+                    </a>
+                    <div>
+                        <button type="button" class="btn btn-outline-danger me-2" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                            <i class="bi bi-trash me-1"></i>Supprimer
+                        </button>
+                        <button type="submit" class="btn btn-phoenix">
+                            <i class="bi bi-check-lg me-1"></i>Enregistrer
+                        </button>
+                    </div>
+                </div>
+                
+                {{ form_end(form) }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de suppression -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle text-danger me-2"></i>Confirmer la suppression</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer ce shift ?</p>
+                <div class="alert alert-light">
+                    <strong>{{ shift.shiftDate|date('d/m/Y') }}</strong><br>
+                    {{ shift.startTime|date('H:i') }} - {{ shift.endTime|date('H:i') }}<br>
+                    {{ shift.agent.firstName }} {{ shift.agent.lastName }} - {{ shift.site.name }}
+                </div>
+                <p class="text-danger mb-0"><small>Cette action est irréversible.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form action="{{ path('admin_shift_delete', {'id': shift.id}) }}" method="post" class="d-inline">
+                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ shift.id) }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Supprimer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

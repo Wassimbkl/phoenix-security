@@ -1,0 +1,95 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}Planning - Phoenix Security{% endblock %}
+
+{% block page_title %}Planning{% endblock %}
+{% block page_subtitle %}Gestion des shifts et du calendrier{% endblock %}
+
+{% block content %}
+<!-- Controls -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row g-3 align-items-center">
+            <div class="col-auto">
+                <div class="btn-group" role="group">
+                    <a href="{{ path('admin_planning', {view: 'week', date: currentDate|date('Y-m-d')}) }}" 
+                       class="btn {{ view == 'week' ? 'btn-phoenix' : 'btn-outline-phoenix' }}"
+                       hx-get="{{ path('admin_planning_calendar', {view: 'week', date: currentDate|date('Y-m-d')}) }}"
+                       hx-target="#calendar-container"
+                       hx-push-url="{{ path('admin_planning', {view: 'week', date: currentDate|date('Y-m-d')}) }}">
+                        <i class="bi bi-calendar-week me-1"></i>Semaine
+                    </a>
+                    <a href="{{ path('admin_planning', {view: 'month', date: currentDate|date('Y-m-d')}) }}" 
+                       class="btn {{ view == 'month' ? 'btn-phoenix' : 'btn-outline-phoenix' }}"
+                       hx-get="{{ path('admin_planning_calendar', {view: 'month', date: currentDate|date('Y-m-d')}) }}"
+                       hx-target="#calendar-container"
+                       hx-push-url="{{ path('admin_planning', {view: 'month', date: currentDate|date('Y-m-d')}) }}">
+                        <i class="bi bi-calendar-month me-1"></i>Mois
+                    </a>
+                </div>
+            </div>
+            
+            <div class="col-auto">
+                <div class="btn-group">
+                    {% if view == 'week' %}
+                        {% set prevDate = currentDate|date_modify('-1 week')|date('Y-m-d') %}
+                        {% set nextDate = currentDate|date_modify('+1 week')|date('Y-m-d') %}
+                    {% else %}
+                        {% set prevDate = currentDate|date_modify('-1 month')|date('Y-m-d') %}
+                        {% set nextDate = currentDate|date_modify('+1 month')|date('Y-m-d') %}
+                    {% endif %}
+                    
+                    <button class="btn btn-outline-secondary"
+                            hx-get="{{ path('admin_planning_calendar', {view: view, date: prevDate}) }}"
+                            hx-target="#calendar-container">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary"
+                            hx-get="{{ path('admin_planning_calendar', {view: view, date: 'now'|date('Y-m-d')}) }}"
+                            hx-target="#calendar-container">
+                        Aujourd'hui
+                    </button>
+                    <button class="btn btn-outline-secondary"
+                            hx-get="{{ path('admin_planning_calendar', {view: view, date: nextDate}) }}"
+                            hx-target="#calendar-container">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="col-auto">
+                <h5 class="mb-0">
+                    {% if view == 'week' %}
+                        Semaine du {{ startDate|date('d/m') }} au {{ endDate|date('d/m/Y') }}
+                    {% else %}
+                        {{ currentDate|date('F Y')|capitalize }}
+                    {% endif %}
+                </h5>
+            </div>
+            
+            <div class="col-auto ms-auto">
+                <a href="{{ path('admin_shift_new') }}" class="btn btn-phoenix">
+                    <i class="bi bi-plus-lg me-2"></i>Nouveau shift
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Calendar -->
+<div class="card">
+    <div class="card-body p-0" id="calendar-container">
+        {% include 'admin/_planning_calendar.html.twig' %}
+    </div>
+</div>
+
+<style>
+    .calendar-container {
+        overflow-x: auto;
+    }
+    
+    .fc-day-today {
+        background-color: rgba(79, 70, 229, 0.05) !important;
+    }
+</style>
+{% endblock %}

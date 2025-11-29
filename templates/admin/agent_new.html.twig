@@ -1,21 +1,70 @@
-{% extends 'base.html.twig' %}
+{% extends 'admin/layout.html.twig' %}
 
-{% block title %}Nouvel Agent{% endblock %}
+{% block title %}Nouvel Agent - Phoenix Security{% endblock %}
 
-{% block body %}
-{% include 'admin/_navbar.html.twig' %}
+{% block page_title %}Nouvel Agent{% endblock %}
+{% block page_subtitle %}Ajouter un agent au système{% endblock %}
 
-<div class="container py-4">
-    <h2>➕ Nouvel Agent</h2>
-
-    {{ form_start(form) }}
-        {{ form_row(form.firstName) }}
-        {{ form_row(form.lastName) }}
-        {{ form_row(form.phone) }}
-        {{ form_row(form.hourlyRate) }}
-        {{ form_row(form.site) }}
-
-        <button class="btn btn-success mt-3">Enregistrer</button>
-    {{ form_end(form) }}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-person-plus text-primary me-2"></i>
+                Informations de l'agent
+            </div>
+            <div class="card-body">
+                {{ form_start(form, {'attr': {'class': 'row g-3'}}) }}
+                    <div class="col-md-6">
+                        <label class="form-label">Prénom</label>
+                        {{ form_widget(form.firstName, {'attr': {'class': 'form-control', 'placeholder': 'Jean'}}) }}
+                        {{ form_errors(form.firstName) }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Nom</label>
+                        {{ form_widget(form.lastName, {'attr': {'class': 'form-control', 'placeholder': 'Dupont'}}) }}
+                        {{ form_errors(form.lastName) }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Téléphone</label>
+                        {{ form_widget(form.phone, {'attr': {'class': 'form-control', 'placeholder': '06 12 34 56 78'}}) }}
+                        {{ form_errors(form.phone) }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Taux horaire</label>
+                        {{ form_widget(form.hourlyRate, {'attr': {'class': 'form-control'}}) }}
+                        {{ form_errors(form.hourlyRate) }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Site d'affectation</label>
+                        {{ form_widget(form.site, {'attr': {'class': 'form-select'}}) }}
+                        {{ form_errors(form.site) }}
+                    </div>
+                    
+                    <div class="col-12">
+                        <hr class="my-3">
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-phoenix">
+                                <i class="bi bi-check-lg me-2"></i>Créer l'agent
+                            </button>
+                            <a href="{{ path('admin_agents') }}" class="btn btn-light">
+                                <i class="bi bi-x-lg me-2"></i>Annuler
+                            </a>
+                        </div>
+                    </div>
+                {{ form_end(form) }}
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-body">
+                <h6><i class="bi bi-info-circle text-info me-2"></i>Note</h6>
+                <p class="mb-0 small text-muted">
+                    Un compte utilisateur sera automatiquement créé pour l'agent avec l'email 
+                    <code>prenom.nom@phoenix.com</code> et le mot de passe <code>0000</code>.
+                </p>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

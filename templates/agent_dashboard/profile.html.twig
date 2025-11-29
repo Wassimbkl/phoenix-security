@@ -1,0 +1,211 @@
+{% extends 'agent_dashboard/layout.html.twig' %}
+
+{% block title %}Mon profil - Phoenix Security{% endblock %}
+
+{% block page_title %}Mon profil{% endblock %}
+{% block page_subtitle %}Informations personnelles{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Carte profil -->
+    <div class="col-12 col-lg-4">
+        <div class="card text-center">
+            <div class="card-body py-5">
+                <div class="avatar avatar-lg mx-auto mb-4" style="width: 120px; height: 120px; font-size: 3rem; background: var(--phoenix-primary); color: white;">
+                    {{ agent.firstName|first|upper }}{{ agent.lastName|first|upper }}
+                </div>
+                <h4 class="mb-1">{{ agent.firstName }} {{ agent.lastName }}</h4>
+                <p class="text-muted mb-3">Agent de sécurité</p>
+                
+                <span class="badge-status {{ agent.status|lower }} fs-6 px-3 py-2">
+                    {{ agent.status }}
+                </span>
+                
+                <hr class="my-4">
+                
+                <div class="d-flex justify-content-around text-center">
+                    <div>
+                        <div class="fs-4 fw-bold text-primary">{{ totalShifts }}</div>
+                        <small class="text-muted">Shifts effectués</small>
+                    </div>
+                    <div>
+                        <div class="fs-4 fw-bold text-success">{{ totalHours|number_format(0) }}h</div>
+                        <small class="text-muted">Heures travaillées</small>
+                    </div>
+                    <div>
+                        <div class="fs-4 fw-bold text-info">{{ monthsWorked }}</div>
+                        <small class="text-muted">Mois d'ancienneté</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Informations détaillées -->
+    <div class="col-12 col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-person-lines-fill text-primary me-2"></i>Informations personnelles
+            </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <label class="form-label text-muted">Prénom</label>
+                        <div class="form-control-plaintext fw-semibold">{{ agent.firstName }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted">Nom</label>
+                        <div class="form-control-plaintext fw-semibold">{{ agent.lastName }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted">Email</label>
+                        <div class="form-control-plaintext fw-semibold">
+                            <i class="bi bi-envelope me-2 text-primary"></i>
+                            {{ agent.email ?? 'Non renseigné' }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted">Téléphone</label>
+                        <div class="form-control-plaintext fw-semibold">
+                            <i class="bi bi-telephone me-2 text-primary"></i>
+                            {{ agent.phone ?? 'Non renseigné' }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <i class="bi bi-briefcase text-primary me-2"></i>Informations professionnelles
+            </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <label class="form-label text-muted">Site d'affectation</label>
+                        <div class="form-control-plaintext fw-semibold">
+                            <i class="bi bi-building me-2 text-primary"></i>
+                            {{ agent.site ? agent.site.name : 'Non assigné' }}
+                        </div>
+                        {% if agent.site %}
+                            <small class="text-muted">
+                                <i class="bi bi-geo-alt me-1"></i>{{ agent.site.address }}
+                            </small>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted">Date d'embauche</label>
+                        <div class="form-control-plaintext fw-semibold">
+                            <i class="bi bi-calendar-event me-2 text-primary"></i>
+                            {{ agent.hireDate ? agent.hireDate|date('d/m/Y') : 'Non renseigné' }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted">Taux horaire</label>
+                        <div class="form-control-plaintext fw-semibold">
+                            <i class="bi bi-currency-euro me-2 text-success"></i>
+                            <span class="text-success fs-5">{{ agent.hourlyRate }}€</span> / heure
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted">Type de contrat</label>
+                        <div class="form-control-plaintext fw-semibold">
+                            <i class="bi bi-file-earmark-text me-2 text-primary"></i>
+                            {{ agent.contractType ?? 'CDI' }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <i class="bi bi-card-text text-primary me-2"></i>Compétences & Certifications
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    <span class="badge bg-phoenix-soft text-phoenix px-3 py-2">
+                        <i class="bi bi-shield-check me-1"></i>Carte professionnelle
+                    </span>
+                    <span class="badge bg-phoenix-soft text-phoenix px-3 py-2">
+                        <i class="bi bi-fire me-1"></i>SST
+                    </span>
+                    <span class="badge bg-phoenix-soft text-phoenix px-3 py-2">
+                        <i class="bi bi-lightning me-1"></i>SSIAP 1
+                    </span>
+                    <span class="badge bg-phoenix-soft text-phoenix px-3 py-2">
+                        <i class="bi bi-eye me-1"></i>Rondier
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Compte utilisateur -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-gear text-primary me-2"></i>Mon compte</span>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h6 class="mb-1">Identifiant de connexion</h6>
+                        <p class="text-muted mb-0">{{ app.user.email }}</p>
+                    </div>
+                    <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                            <i class="bi bi-key me-1"></i>Changer de mot de passe
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal changement de mot de passe -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-key me-2"></i>Changer de mot de passe</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="#" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="currentPassword" class="form-label">Mot de passe actuel</label>
+                        <input type="password" class="form-control" id="currentPassword" name="current_password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="newPassword" class="form-label">Nouveau mot de passe</label>
+                        <input type="password" class="form-control" id="newPassword" name="new_password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">Confirmer le mot de passe</label>
+                        <input type="password" class="form-control" id="confirmPassword" name="confirm_password" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-phoenix">
+                        <i class="bi bi-check-lg me-1"></i>Confirmer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-phoenix-soft {
+        background-color: rgba(79, 70, 229, 0.1);
+    }
+    .text-phoenix {
+        color: var(--phoenix-primary);
+    }
+</style>
+{% endblock %}

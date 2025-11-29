@@ -1,77 +1,167 @@
-{% extends 'base.html.twig' %}
+{% extends 'admin/layout.html.twig' %}
 
-{% block title %}Gestion des Agents - Phoenix Security{% endblock %}
+{% block title %}Agents - Phoenix Security{% endblock %}
 
-{% block body %}
-{% include 'admin/_navbar.html.twig' %}
+{% block page_title %}Gestion des Agents{% endblock %}
+{% block page_subtitle %}{{ stats.total_agents }} agents enregistrés{% endblock %}
 
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>👮 Gestion des Agents</h2>
-<a href="{{ path('app_agent_new') }}" class="btn btn-success">+ Nouvel Agent</a>
-    </div>
-
-    <div class="row text-center mb-4">
-        <div class="col-md-3">
-            <div class="card shadow-sm p-3">
-                <h6>Total Agents</h6>
-                <h3>{{ stats.total_agents }}</h3>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card shadow-sm p-3">
-                <h6>Agents Actifs</h6>
-                <h3>{{ stats.active_agents }}</h3>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card shadow-sm p-3">
-                <h6>Heures Totales</h6>
-                <h3>{{ stats.total_hours }}h</h3>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card shadow-sm p-3">
-                <h6>Salaire Total</h6>
-                <h3>€{{ stats.total_salary }}</h3>
+{% block content %}
+<!-- Stats Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-card-value">{{ stats.total_agents }}</div>
+                    <div class="stat-card-label">Total Agents</div>
+                </div>
+                <div class="stat-card-icon primary">
+                    <i class="bi bi-people"></i>
+                </div>
             </div>
         </div>
     </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-card-value">{{ stats.active_agents }}</div>
+                    <div class="stat-card-label">Agents Actifs</div>
+                </div>
+                <div class="stat-card-icon success">
+                    <i class="bi bi-person-check"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-card-value">{{ stats.total_hours }}h</div>
+                    <div class="stat-card-label">Heures totales</div>
+                </div>
+                <div class="stat-card-icon info">
+                    <i class="bi bi-clock"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-card-value">{{ stats.total_salary|number_format(0, ',', ' ') }}€</div>
+                    <div class="stat-card-label">Masse salariale</div>
+                </div>
+                <div class="stat-card-icon warning">
+                    <i class="bi bi-currency-euro"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <h4>Liste des Agents</h4>
-    <table class="table table-striped mt-3">
-        <thead class="table-dark">
-            <tr>
-                <th>Agent</th>
-                <th>Contact</th>
-                <th>Site</th>
-                <th>Salaire/h</th>
-                <th>Heures</th>
-                <th>Statut</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for agent in agents %}
-                <tr>
-                    <td>{{ agent.firstName }} {{ agent.lastName }}</td>
-                    <td>{{ agent.phone }}</td>
-                    <td>{{ agent.site.name }}</td>
-                    <td>€{{ agent.hourlyRate }}</td>
-                    <td>140h</td>
-                    <td>{{ agent.status }}</td>
-                    <td>
-    <a href="{{ path('admin_agent_edit', {id: agent.id}) }}" class="btn btn-sm btn-primary">✏️</a>
-    <form method="post" action="{{ path('admin_agent_delete', {id: agent.id}) }}" style="display:inline-block;">
-        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ agent.id) }}">
-        <button class="btn btn-sm btn-danger">🗑️</button>
-    </form>
-</td>
-                </tr>
-            {% else %}
-                <tr><td colspan="7" class="text-center text-muted">Aucun agent trouvé.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>  
+<!-- Filters & Actions -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-12 col-md-4">
+                <div class="search-box">
+                    <i class="bi bi-search"></i>
+                    <input type="text" 
+                           class="form-control" 
+                           placeholder="Rechercher un agent..."
+                           hx-get="{{ path('admin_agents_search') }}"
+                           hx-trigger="keyup changed delay:300ms"
+                           hx-target="#agents-list"
+                           hx-swap="innerHTML"
+                           name="q">
+                </div>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small text-muted">Statut</label>
+                <select class="form-select" 
+                        hx-get="{{ path('admin_agents_search') }}"
+                        hx-trigger="change"
+                        hx-target="#agents-list"
+                        hx-include="[name='q']"
+                        name="status">
+                    <option value="">Tous</option>
+                    <option value="ACTIF">Actifs</option>
+                    <option value="INACTIF">Inactifs</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small text-muted">Site</label>
+                <select class="form-select"
+                        hx-get="{{ path('admin_agents_search') }}"
+                        hx-trigger="change"
+                        hx-target="#agents-list"
+                        hx-include="[name='q'], [name='status']"
+                        name="site">
+                    <option value="">Tous les sites</option>
+                    {% set sites_seen = [] %}
+                    {% for agent in agents %}
+                        {% if agent.site and agent.site.id not in sites_seen %}
+                            <option value="{{ agent.site.id }}">{{ agent.site.name }}</option>
+                            {% set sites_seen = sites_seen|merge([agent.site.id]) %}
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12 col-md-4 text-end">
+                <a href="{{ path('app_agent_new') }}" class="btn btn-phoenix">
+                    <i class="bi bi-plus-lg me-2"></i>Nouvel agent
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Agents List -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive" id="agents-list">
+            {% include 'admin/_agents_table.html.twig' %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle text-danger me-2"></i>
+                    Confirmer la suppression
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer cet agent ?</p>
+                <p class="text-muted small">Cette action est irréversible. Tous les shifts et paiements associés seront également supprimés.</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    <input type="hidden" name="_token" value="">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Supprimer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(id, token) {
+    const form = document.getElementById('deleteForm');
+    form.action = `/admin/agents/${id}/delete`;
+    form.querySelector('input[name="_token"]').value = token;
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+</script>
 {% endblock %}

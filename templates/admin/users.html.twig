@@ -1,0 +1,116 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}Utilisateurs - Phoenix Security{% endblock %}
+
+{% block page_title %}Gestion des Utilisateurs{% endblock %}
+{% block page_subtitle %}{{ users|length }} utilisateurs enregistrés{% endblock %}
+
+{% block content %}
+<!-- Actions -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="search-box" style="width: 300px;">
+        <i class="bi bi-search"></i>
+        <input type="text" class="form-control" placeholder="Rechercher un utilisateur..." id="searchUser">
+    </div>
+    <a href="{{ path('app_agent_new') }}" class="btn btn-phoenix">
+        <i class="bi bi-plus-lg me-2"></i>Nouvel utilisateur
+    </a>
+</div>
+
+<!-- Users List -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-modern mb-0">
+                <thead>
+                    <tr>
+                        <th>Utilisateur</th>
+                        <th>Email</th>
+                        <th>Rôle</th>
+                        <th>Date création</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="users-table">
+                    {% for user in users %}
+                        <tr class="user-row" data-email="{{ user.email|lower }}">
+                            <td>
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="avatar {{ user.role == 'ADMIN' ? 'bg-danger' : 'bg-primary' }}" style="color: white;">
+                                        {{ user.email|first|upper }}
+                                    </div>
+                                    <div>
+                                        <div class="fw-semibold">{{ user.email|split('@')[0]|capitalize }}</div>
+                                        <small class="text-muted">ID: {{ user.id }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <i class="bi bi-envelope text-muted me-1"></i>
+                                {{ user.email }}
+                            </td>
+                            <td>
+                                {% if user.role == 'ADMIN' %}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger">
+                                        <i class="bi bi-shield-check me-1"></i>Administrateur
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-primary bg-opacity-10 text-primary">
+                                        <i class="bi bi-person me-1"></i>Agent
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <i class="bi bi-calendar text-muted me-1"></i>
+                                {{ user.createdAt|date('d/m/Y H:i') }}
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-primary" title="Modifier" disabled>
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    {% if user.role != 'ADMIN' %}
+                                        <button class="btn btn-sm btn-outline-danger" title="Supprimer" disabled>
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5">
+                                <i class="bi bi-people fs-1 text-muted"></i>
+                                <p class="mt-3 mb-0">Aucun utilisateur enregistré</p>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Info -->
+<div class="card mt-4">
+    <div class="card-body">
+        <h6><i class="bi bi-info-circle text-info me-2"></i>À propos des utilisateurs</h6>
+        <ul class="mb-0 small text-muted">
+            <li>Les <strong>Administrateurs</strong> ont accès à toutes les fonctionnalités de gestion</li>
+            <li>Les <strong>Agents</strong> peuvent uniquement consulter leur propre planning et paiements</li>
+            <li>Un compte agent est automatiquement créé lors de l'ajout d'un nouvel agent</li>
+            <li>Le mot de passe par défaut est <code>0000</code> - l'agent devra le changer</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+document.getElementById('searchUser').addEventListener('input', function(e) {
+    const search = e.target.value.toLowerCase();
+    document.querySelectorAll('.user-row').forEach(row => {
+        const email = row.dataset.email;
+        row.style.display = email.includes(search) ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

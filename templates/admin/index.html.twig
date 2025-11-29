@@ -1,88 +1,284 @@
-{% extends 'base.html.twig' %}
+{% extends 'admin/layout.html.twig' %}
 
-{% block title %}Dashboard Admin{% endblock %}
+{% block title %}Dashboard - Phoenix Security{% endblock %}
 
-{% block body %}
-{% include 'admin/_navbar.html.twig' %}
+{% block page_title %}Tableau de bord{% endblock %}
+{% block page_subtitle %}Bienvenue sur Phoenix Security{% endblock %}
 
-<div class="container py-4">
-    <h2 class="mb-4 text-center">Tableau de bord - ADMIN</h2>
-
-    <div class="row text-center">
-        <div class="col-md-2 mb-3">
-            <div class="card shadow-sm p-3">
-                <h6>Total Agents</h6>
-                <h3>{{ stats.total_agents }}</h3>
+{% block content %}
+<!-- Stats Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-card-value">{{ stats.total_agents }}</div>
+                    <div class="stat-card-label">Total Agents</div>
+                </div>
+                <div class="stat-card-icon primary">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+            </div>
+            <div class="stat-card-trend up mt-3">
+                <i class="bi bi-arrow-up"></i>
+                <span>{{ stats.active_agents }} actifs</span>
             </div>
         </div>
-        <div class="col-md-2 mb-3">
-            <div class="card shadow-sm p-3">
-                <h6>Agents Actifs</h6>
-                <h3>{{ stats.active_agents }}</h3>
+    </div>
+    
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-card-value">{{ stats.total_shifts }}</div>
+                    <div class="stat-card-label">Shifts ce mois</div>
+                </div>
+                <div class="stat-card-icon info">
+                    <i class="bi bi-calendar-check"></i>
+                </div>
+            </div>
+            <div class="stat-card-trend up mt-3">
+                <i class="bi bi-arrow-up"></i>
+                <span>+12% vs mois dernier</span>
             </div>
         </div>
-        <div class="col-md-2 mb-3">
-            <div class="card shadow-sm p-3">
-                <h6>Shifts ce mois</h6>
-                <h3>{{ stats.total_shifts }}</h3>
+    </div>
+    
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-card-value">{{ stats.total_hours }}h</div>
+                    <div class="stat-card-label">Heures travaillées</div>
+                </div>
+                <div class="stat-card-icon success">
+                    <i class="bi bi-clock-history"></i>
+                </div>
+            </div>
+            <div class="stat-card-trend up mt-3">
+                <i class="bi bi-check-circle"></i>
+                <span>Ce mois</span>
             </div>
         </div>
-        <div class="col-md-3 mb-3">
-            <div class="card shadow-sm p-3">
-                <h6>Heures Totales</h6>
-                <h3>{{ stats.total_hours }}h</h3>
+    </div>
+    
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-card-value">{{ stats.total_salary|number_format(0, ',', ' ') }}€</div>
+                    <div class="stat-card-label">Masse salariale</div>
+                </div>
+                <div class="stat-card-icon warning">
+                    <i class="bi bi-currency-euro"></i>
+                </div>
             </div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <div class="card shadow-sm p-3">
-                <h6>Salaire Total</h6>
-                <h3>€{{ stats.total_salary }}</h3>
+            <div class="stat-card-trend mt-3">
+                <i class="bi bi-info-circle"></i>
+                <span>Estimation mensuelle</span>
             </div>
         </div>
     </div>
 </div>
-<hr class="my-5">
 
-<h3>🕒 Activités récentes</h3>
-<ul class="list-group mb-5">
-    {% for s in recentActivities %}
-        <li class="list-group-item">
-            <strong>{{ s.agent.firstName }} {{ s.agent.lastName }}</strong>
-            — Shift {{ s.status|lower }} ({{ s.site.name }})
-            <br>
-            <small class="text-muted">
-                {{ s.shiftDate|date("d/m/Y") }} • {{ s.startTime|date("H:i") }}
-            </small>
-        </li>
-    {% else %}
-        <li class="list-group-item text-muted">Aucune activité récente.</li>
-    {% endfor %}
-</ul>
-
-<h3>⚠️ Alertes</h3>
-<ul class="list-group mb-5">
-    <li class="list-group-item">
-        {{ alerts.unassigned }} shifts non assignés pour demain
-    </li>
-    <li class="list-group-item">
-        {{ alerts.late_agents }} agents potentiellement en retard
-    </li>
-    <li class="list-group-item">
-        Rapport mensuel disponible
-    </li>
-</ul>
-
-<h3>🏢 Aperçu des Sites</h3>
-<div class="row">
-    {% for site in sites %}
-        <div class="col-md-4 mb-3">
-            <div class="card shadow p-3">
-                <h5>{{ site.name }}</h5>
-                <p>👮 {{ site.agents }} agents</p>
-                <p>{{ site.hours }}</p>
+<div class="row g-4">
+    <!-- Alertes -->
+    <div class="col-12 col-lg-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-exclamation-triangle me-2 text-warning"></i>Alertes</span>
+                <span class="badge bg-warning text-dark">{{ alerts.unassigned + alerts.late_agents }}</span>
+            </div>
+            <div class="card-body">
+                {% if alerts.unassigned > 0 %}
+                <div class="alert-card warning mb-3">
+                    <i class="bi bi-calendar-x fs-5"></i>
+                    <div>
+                        <strong>{{ alerts.unassigned }} shift(s) non assigné(s)</strong>
+                        <div class="small">Pour demain</div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if alerts.late_agents > 0 %}
+                <div class="alert-card danger mb-3">
+                    <i class="bi bi-clock fs-5"></i>
+                    <div>
+                        <strong>{{ alerts.late_agents }} agent(s) en retard</strong>
+                        <div class="small">Shift non pointé</div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if alerts.monthly_report %}
+                <div class="alert-card success">
+                    <i class="bi bi-file-earmark-check fs-5"></i>
+                    <div>
+                        <strong>Rapport mensuel prêt</strong>
+                        <div class="small">Cliquez pour télécharger</div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if alerts.unassigned == 0 and alerts.late_agents == 0 %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-check-circle fs-1 text-success"></i>
+                    <p class="mt-2 mb-0">Tout est en ordre !</p>
+                </div>
+                {% endif %}
             </div>
         </div>
-    {% endfor %}
+    </div>
+    
+    <!-- Activités récentes -->
+    <div class="col-12 col-lg-8">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-activity me-2 text-primary"></i>Activités récentes</span>
+                <a href="{{ path('admin_planning') }}" class="btn btn-sm btn-outline-phoenix">Voir tout</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-modern mb-0">
+                        <thead>
+                            <tr>
+                                <th>Agent</th>
+                                <th>Site</th>
+                                <th>Date</th>
+                                <th>Horaire</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in recentActivities %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="avatar" style="background: var(--phoenix-primary); color: white;">
+                                            {{ s.agent.firstName|first }}{{ s.agent.lastName|first }}
+                                        </div>
+                                        <div>
+                                            <div class="fw-medium">{{ s.agent.firstName }} {{ s.agent.lastName }}</div>
+                                            <small class="text-muted">{{ s.agent.phone ?? 'Non renseigné' }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <i class="bi bi-geo-alt text-muted me-1"></i>
+                                    {{ s.site.name }}
+                                </td>
+                                <td>{{ s.shiftDate|date("d/m/Y") }}</td>
+                                <td>
+                                    <i class="bi bi-clock text-muted me-1"></i>
+                                    {{ s.startTime|date("H:i") }} - {{ s.endTime|date("H:i") }}
+                                </td>
+                                <td>
+                                    <span class="badge-status {{ s.status|lower }}">
+                                        {% if s.status == 'EFFECTUE' %}
+                                            <i class="bi bi-check-circle me-1"></i>
+                                        {% elseif s.status == 'PREVU' %}
+                                            <i class="bi bi-calendar me-1"></i>
+                                        {% else %}
+                                            <i class="bi bi-x-circle me-1"></i>
+                                        {% endif %}
+                                        {{ s.status|lower|capitalize }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">
+                                    <i class="bi bi-inbox fs-1"></i>
+                                    <p class="mt-2 mb-0">Aucune activité récente</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
+<!-- Sites Overview -->
+<div class="row g-4 mt-2">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-building me-2 text-primary"></i>Aperçu des sites</span>
+                <a href="{{ path('admin_sites') }}" class="btn btn-sm btn-outline-phoenix">Gérer les sites</a>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    {% for site in sites %}
+                    <div class="col-12 col-md-6 col-lg-4">
+                        <div class="p-3 rounded-3" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="mb-0 fw-semibold">
+                                    <i class="bi bi-building text-primary me-2"></i>
+                                    {{ site.name }}
+                                </h6>
+                                <span class="badge bg-primary bg-opacity-10 text-primary">
+                                    {{ site.agents }} agent(s)
+                                </span>
+                            </div>
+                            <div class="small text-muted">
+                                <i class="bi bi-clock me-1"></i>{{ site.hours }}
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="col-12 text-center py-4 text-muted">
+                        <i class="bi bi-building fs-1"></i>
+                        <p class="mt-2 mb-0">Aucun site configuré</p>
+                        <a href="{{ path('admin_site_new') }}" class="btn btn-phoenix btn-sm mt-3">
+                            <i class="bi bi-plus me-1"></i>Ajouter un site
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row g-4 mt-2">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-lightning me-2 text-warning"></i>Actions rapides
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-6 col-md-3">
+                        <a href="{{ path('app_agent_new') }}" class="btn btn-outline-phoenix w-100 py-3">
+                            <i class="bi bi-person-plus d-block fs-4 mb-2"></i>
+                            Nouvel agent
+                        </a>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <a href="{{ path('app_shift_new') }}" class="btn btn-outline-phoenix w-100 py-3">
+                            <i class="bi bi-calendar-plus d-block fs-4 mb-2"></i>
+                            Nouveau shift
+                        </a>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <a href="{{ path('admin_site_new') }}" class="btn btn-outline-phoenix w-100 py-3">
+                            <i class="bi bi-building-add d-block fs-4 mb-2"></i>
+                            Nouveau site
+                        </a>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <a href="{{ path('admin_payments') }}" class="btn btn-outline-phoenix w-100 py-3">
+                            <i class="bi bi-receipt d-block fs-4 mb-2"></i>
+                            Générer paiements
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

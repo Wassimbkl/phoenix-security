@@ -1,0 +1,91 @@
+<table class="table table-modern mb-0">
+    <thead>
+        <tr>
+            <th>Agent</th>
+            <th>Contact</th>
+            <th>Site</th>
+            <th>Taux horaire</th>
+            <th>Statut</th>
+            <th class="text-end">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for agent in agents %}
+        <tr class="fade-in">
+            <td>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="avatar" style="background: {{ agent.status == 'ACTIF' ? 'var(--phoenix-primary)' : '#94a3b8' }}; color: white;">
+                        {{ agent.firstName|first|upper }}{{ agent.lastName|first|upper }}
+                    </div>
+                    <div>
+                        <div class="fw-semibold">{{ agent.firstName }} {{ agent.lastName }}</div>
+                        <small class="text-muted">
+                            <i class="bi bi-calendar3 me-1"></i>
+                            Depuis {{ agent.hireDate ? agent.hireDate|date("d/m/Y") : 'N/A' }}
+                        </small>
+                    </div>
+                </div>
+            </td>
+            <td>
+                {% if agent.phone %}
+                    <i class="bi bi-telephone text-muted me-1"></i>
+                    {{ agent.phone }}
+                {% else %}
+                    <span class="text-muted">Non renseigné</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if agent.site %}
+                    <span class="badge bg-light text-dark">
+                        <i class="bi bi-building me-1"></i>
+                        {{ agent.site.name }}
+                    </span>
+                {% else %}
+                    <span class="text-muted">Non assigné</span>
+                {% endif %}
+            </td>
+            <td>
+                <strong class="text-success">{{ agent.hourlyRate|number_format(2, ',', ' ') }}€</strong>
+                <small class="text-muted">/h</small>
+            </td>
+            <td>
+                <span class="badge-status {{ agent.status|lower }}">
+                    {% if agent.status == 'ACTIF' %}
+                        <i class="bi bi-check-circle me-1"></i>
+                    {% else %}
+                        <i class="bi bi-x-circle me-1"></i>
+                    {% endif %}
+                    {{ agent.status }}
+                </span>
+            </td>
+            <td class="text-end">
+                <div class="btn-group">
+                    <a href="{{ path('admin_agent_edit', {id: agent.id}) }}" 
+                       class="btn btn-sm btn-outline-primary"
+                       title="Modifier">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <button type="button" 
+                            class="btn btn-sm btn-outline-danger"
+                            onclick="confirmDelete({{ agent.id }}, '{{ csrf_token('delete' ~ agent.id) }}')"
+                            title="Supprimer">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="6" class="text-center py-5">
+                <div class="text-muted">
+                    <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                    <p class="mb-2">Aucun agent trouvé</p>
+                    <a href="{{ path('app_agent_new') }}" class="btn btn-phoenix btn-sm">
+                        <i class="bi bi-plus me-1"></i>Ajouter un agent
+                    </a>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

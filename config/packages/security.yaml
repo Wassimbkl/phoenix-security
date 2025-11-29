@@ -27,4 +27,4 @@ security:
 
     access_control:
         - { path: ^/admin, roles: ROLE_ADMIN }
-        - { path: ^/agent, roles: ROLE_AGENT }
+        - { path: ^/espace-agent, roles: ROLE_AGENT }
