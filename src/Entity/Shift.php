@@ -3,9 +3,11 @@
 namespace App\Entity;
 
 use App\Repository\ShiftRepository;
+use App\Validator\NoShiftOverlap;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ShiftRepository::class)]
+#[NoShiftOverlap]
 class Shift
 {
     #[ORM\Id]

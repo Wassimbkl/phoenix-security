@@ -125,19 +125,4 @@ function confirmDelete(id, token) {
     new bootstrap.Modal(document.getElementById('deleteModal')).show();
 }
 </script>
-{% endblock %}.html.twig' %}
-
-{% block title %}Modifier un Agent{% endblock %}
-
-{% block body %}
-{% include 'admin/_navbar.html.twig' %}
-
-<div class="container py-4">
-    <h2>✏️ Modifier l’Agent : {{ agent.firstName }} {{ agent.lastName }}</h2>
-
-    {{ form_start(form) }}
-        {{ form_widget(form) }}
-        <button class="btn btn-primary mt-3">💾 Enregistrer</button>
-    {{ form_end(form) }}
-</div>
 {% endblock %}

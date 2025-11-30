@@ -1,0 +1,283 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}Planning du {{ date|date('d/m/Y') }} - Phoenix Security{% endblock %}
+
+{% block page_title %}
+    <i class="bi bi-calendar-day me-2"></i>Planning du {{ date|date('l d F Y')|capitalize }}
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <a href="{{ path('admin_planning', {date: date|date('Y-m-d'), view: 'week'}) }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>Retour au calendrier
+                </a>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ path('admin_planning_day', {date: date|date_modify('-1 day')|date('Y-m-d')}) }}" class="btn btn-outline-primary">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+                <a href="{{ path('admin_planning_day', {date: 'now'|date('Y-m-d')}) }}" class="btn btn-outline-secondary">
+                    Aujourd'hui
+                </a>
+                <a href="{{ path('admin_planning_day', {date: date|date_modify('+1 day')|date('Y-m-d')}) }}" class="btn btn-outline-primary">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </div>
+            <a href="{{ path('admin_shift_new') }}" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-2"></i>Nouveau shift
+            </a>
+        </div>
+    </div>
+</div>
+
+{% set dayOfWeek = date|date('N') %}
+<div class="alert alert-light border mb-4">
+    <div class="d-flex align-items-center">
+        <i class="bi bi-info-circle text-primary me-3 fs-4"></i>
+        <div>
+            <strong>{{ shifts|length }} shift{{ shifts|length > 1 ? 's' : '' }}</strong> programmé{{ shifts|length > 1 ? 's' : '' }} pour le 
+            <strong>{{ date|date('l d F Y')|capitalize }}</strong>
+            {% if dayOfWeek == 6 or dayOfWeek == 7 %}
+                <span class="badge bg-warning text-dark ms-2">Weekend</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if shifts|length > 0 %}
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="border-0 px-4 py-3">Horaires</th>
+                        <th class="border-0 py-3">Agent</th>
+                        <th class="border-0 py-3">Site</th>
+                        <th class="border-0 py-3">Type</th>
+                        <th class="border-0 py-3">Statut</th>
+                        <th class="border-0 py-3 text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for shift in shifts %}
+                        <tr>
+                            <td class="px-4 py-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-primary bg-opacity-10 rounded-3 p-2 me-3">
+                                        <i class="bi bi-clock text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-semibold">
+                                            {{ shift.startTime|date('H:i') }} - {{ shift.endTime|date('H:i') }}
+                                        </div>
+                                        {% set start = shift.startTime %}
+                                        {% set end = shift.endTime %}
+                                        {% set hours = ((end.timestamp - start.timestamp) / 3600)|round(1) %}
+                                        {% if hours < 0 %}
+                                            {% set hours = hours + 24 %}
+                                        {% endif %}
+                                        <small class="text-muted">{{ hours }}h de travail</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-3">
+                                {% if shift.agent %}
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle bg-secondary text-white me-2">
+                                            {{ shift.agent.firstName|slice(0, 1)|upper }}{{ shift.agent.lastName|slice(0, 1)|upper }}
+                                        </div>
+                                        <div>
+                                            <div class="fw-semibold">{{ shift.agent.firstName }} {{ shift.agent.lastName }}</div>
+                                            <small class="text-muted">{{ shift.agent.phone ?? 'Pas de téléphone' }}</small>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted fst-italic">Non assigné</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3">
+                                {% if shift.site %}
+                                    <div>
+                                        <div class="fw-semibold">{{ shift.site.name }}</div>
+                                        <small class="text-muted">
+                                            <i class="bi bi-geo-alt me-1"></i>{{ shift.site.address|slice(0, 30) }}{% if shift.site.address|length > 30 %}...{% endif %}
+                                        </small>
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted fst-italic">Non défini</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3">
+                                {% set typeConfig = {
+                                    'JOUR': {'class': 'bg-warning text-dark', 'icon': 'sun'},
+                                    'NUIT': {'class': 'bg-dark', 'icon': 'moon-stars'}
+                                } %}
+                                {% set tConfig = typeConfig[shift.type] ?? {'class': 'bg-secondary', 'icon': 'question-circle'} %}
+                                <span class="badge {{ tConfig.class }} rounded-pill px-3 py-2">
+                                    <i class="bi bi-{{ tConfig.icon }} me-1"></i>
+                                    {{ shift.type }}
+                                </span>
+                            </td>
+                            <td class="py-3">
+                                {% set statusConfig = {
+                                    'PREVU': {'class': 'bg-info', 'icon': 'calendar-check'},
+                                    'EFFECTUE': {'class': 'bg-success', 'icon': 'check-circle'},
+                                    'ABSENT': {'class': 'bg-danger', 'icon': 'x-circle'}
+                                } %}
+                                {% set config = statusConfig[shift.status] ?? {'class': 'bg-secondary', 'icon': 'question-circle'} %}
+                                <span class="badge {{ config.class }} rounded-pill px-3 py-2">
+                                    <i class="bi bi-{{ config.icon }} me-1"></i>
+                                    {{ shift.status }}
+                                </span>
+                            </td>
+                            <td class="py-3 text-end pe-4">
+                                <div class="btn-group">
+                                    <a href="{{ path('admin_shift_edit', {id: shift.id}) }}" class="btn btn-sm btn-outline-primary" title="Modifier">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#deleteModal{{ shift.id }}"
+                                            title="Supprimer">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                                
+                                <!-- Modal de suppression -->
+                                <div class="modal fade" id="deleteModal{{ shift.id }}" tabindex="-1">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header border-0">
+                                                <h5 class="modal-title">Confirmer la suppression</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body text-start">
+                                                <p>Êtes-vous sûr de vouloir supprimer ce shift ?</p>
+                                                <div class="bg-light rounded-3 p-3">
+                                                    <strong>{{ shift.startTime|date('H:i') }} - {{ shift.endTime|date('H:i') }}</strong><br>
+                                                    {% if shift.agent %}Agent: {{ shift.agent.firstName }} {{ shift.agent.lastName }}{% endif %}<br>
+                                                    {% if shift.site %}Site: {{ shift.site.name }}{% endif %}
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer border-0">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                                <form action="{{ path('admin_shift_delete', {id: shift.id}) }}" method="post" class="d-inline">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ shift.id) }}">
+                                                    <button type="submit" class="btn btn-danger">
+                                                        <i class="bi bi-trash me-2"></i>Supprimer
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Résumé des heures -->
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-primary bg-opacity-10 rounded-3 p-3 me-3">
+                            <i class="bi bi-people fs-4 text-primary"></i>
+                        </div>
+                        <div>
+                            {% set uniqueAgents = [] %}
+                            {% for shift in shifts %}
+                                {% if shift.agent and shift.agent.id not in uniqueAgents %}
+                                    {% set uniqueAgents = uniqueAgents|merge([shift.agent.id]) %}
+                                {% endif %}
+                            {% endfor %}
+                            <h3 class="mb-0">{{ uniqueAgents|length }}</h3>
+                            <small class="text-muted">Agent{{ uniqueAgents|length > 1 ? 's' : '' }} mobilisé{{ uniqueAgents|length > 1 ? 's' : '' }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-success bg-opacity-10 rounded-3 p-3 me-3">
+                            <i class="bi bi-building fs-4 text-success"></i>
+                        </div>
+                        <div>
+                            {% set uniqueSites = [] %}
+                            {% for shift in shifts %}
+                                {% if shift.site and shift.site.id not in uniqueSites %}
+                                    {% set uniqueSites = uniqueSites|merge([shift.site.id]) %}
+                                {% endif %}
+                            {% endfor %}
+                            <h3 class="mb-0">{{ uniqueSites|length }}</h3>
+                            <small class="text-muted">Site{{ uniqueSites|length > 1 ? 's' : '' }} couvert{{ uniqueSites|length > 1 ? 's' : '' }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-warning bg-opacity-10 rounded-3 p-3 me-3">
+                            <i class="bi bi-clock-history fs-4 text-warning"></i>
+                        </div>
+                        <div>
+                            {% set totalHours = 0 %}
+                            {% for shift in shifts %}
+                                {% set start = shift.startTime %}
+                                {% set end = shift.endTime %}
+                                {% set hours = ((end.timestamp - start.timestamp) / 3600) %}
+                                {% if hours < 0 %}
+                                    {% set hours = hours + 24 %}
+                                {% endif %}
+                                {% set totalHours = totalHours + hours %}
+                            {% endfor %}
+                            <h3 class="mb-0">{{ totalHours|round(1) }}h</h3>
+                            <small class="text-muted">Total heures planifiées</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% else %}
+    <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5">
+            <div class="mb-4">
+                <i class="bi bi-calendar-x display-1 text-muted"></i>
+            </div>
+            <h4 class="text-muted mb-3">Aucun shift prévu pour cette journée</h4>
+            <p class="text-muted mb-4">Planifiez un nouveau shift pour le {{ date|date('d/m/Y') }}</p>
+            <a href="{{ path('admin_shift_new') }}" class="btn btn-primary btn-lg">
+                <i class="bi bi-plus-lg me-2"></i>Créer un shift
+            </a>
+        </div>
+    </div>
+{% endif %}
+
+<style>
+    .avatar-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}

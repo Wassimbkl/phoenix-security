@@ -35,11 +35,26 @@
                         {{ form_widget(form.hourlyRate, {'attr': {'class': 'form-control'}}) }}
                         {{ form_errors(form.hourlyRate) }}
                     </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Date d'embauche</label>
+                        {{ form_widget(form.hireDate, {'attr': {'class': 'form-control'}}) }}
+                        {{ form_errors(form.hireDate) }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Statut</label>
+                        {{ form_widget(form.status, {'attr': {'class': 'form-select'}}) }}
+                        {{ form_errors(form.status) }}
+                    </div>
                     <div class="col-12">
                         <label class="form-label">Site d'affectation</label>
                         {{ form_widget(form.site, {'attr': {'class': 'form-select'}}) }}
                         {{ form_errors(form.site) }}
                     </div>
+                    
+                    {# Champ user masqué car géré automatiquement #}
+                    {% if form.user is defined %}
+                        {{ form_widget(form.user, {'attr': {'class': 'd-none'}}) }}
+                    {% endif %}
                     
                     <div class="col-12">
                         <hr class="my-3">

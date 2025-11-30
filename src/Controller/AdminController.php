@@ -384,6 +384,26 @@ class AdminController extends AbstractController
         ]);
     }
 
+    #[Route('/planning/day/{date}', name: 'admin_planning_day')]
+    public function planningDay(string $date, ShiftRepository $shiftRepo, AgentRepository $agentRepo, SiteRepository $siteRepo): Response
+    {
+        $currentDate = new \DateTime($date);
+        
+        $shifts = $shiftRepo->createQueryBuilder('s')
+            ->where('s.shiftDate = :date')
+            ->setParameter('date', $currentDate)
+            ->orderBy('s.startTime', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $this->render('admin/planning_day.html.twig', [
+            'date' => $currentDate,
+            'shifts' => $shifts,
+            'agents' => $agentRepo->findBy(['status' => 'ACTIF']),
+            'sites' => $siteRepo->findAll(),
+        ]);
+    }
+
     #[Route('/shifts/new', name: 'admin_shift_new')]
     public function newShift(Request $request, EntityManagerInterface $em, AgentRepository $agentRepo, SiteRepository $siteRepo): Response
     {

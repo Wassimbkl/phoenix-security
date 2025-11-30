@@ -1,27 +1,116 @@
-{% extends 'base.html.twig' %}
+{% extends 'admin/layout.html.twig' %}
 
 {% block title %}Nouvel Agent - Phoenix Security{% endblock %}
 
-{% block body %}
-    {% include 'admin/_navbar.html.twig' %}
+{% block page_title %}Nouvel agent{% endblock %}
+{% block page_subtitle %}Ajouter un agent à l'équipe{% endblock %}
 
-    <div class="container py-4">
-        <h2>➕ Ajouter un nouvel agent</h2>
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ path('admin_dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ path('admin_agents') }}">Agents</a></li>
+                <li class="breadcrumb-item active">Nouvel agent</li>
+            </ol>
+        </nav>
 
-        <div class="card p-4 mt-3 shadow-sm">
-            {{ form_start(form) }}
-                {{ form_row(form.firstName) }}
-                {{ form_row(form.lastName) }}
-                {{ form_row(form.phone) }}
-                {{ form_row(form.hourlyRate) }}
-                {{ form_row(form.hireDate) }}
-                {{ form_row(form.status) }}
-                {{ form_row(form.site) }}
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-person-plus text-primary me-2"></i>Informations de l'agent
+            </div>
+            <div class="card-body">
+                {{ form_start(form, {'attr': {'class': 'needs-validation', 'novalidate': 'novalidate'}}) }}
+                
+                <div class="row g-4">
+                    <!-- Informations personnelles -->
+                    <div class="col-12">
+                        <h6 class="text-muted mb-3">
+                            <i class="bi bi-person me-2"></i>Informations personnelles
+                        </h6>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label required">Prénom</label>
+                        {{ form_widget(form.firstName, {'attr': {'class': 'form-control', 'placeholder': 'Ex: Jean'}}) }}
+                        {{ form_errors(form.firstName) }}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label required">Nom</label>
+                        {{ form_widget(form.lastName, {'attr': {'class': 'form-control', 'placeholder': 'Ex: Dupont'}}) }}
+                        {{ form_errors(form.lastName) }}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label">Téléphone</label>
+                        {{ form_widget(form.phone, {'attr': {'class': 'form-control', 'placeholder': 'Ex: 06 12 34 56 78'}}) }}
+                        {{ form_errors(form.phone) }}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label required">Date d'embauche</label>
+                        {{ form_widget(form.hireDate, {'attr': {'class': 'form-control'}}) }}
+                        {{ form_errors(form.hireDate) }}
+                    </div>
 
-                <button class="btn btn-dark mt-3">Enregistrer</button>
-            {{ form_end(form) }}
+                    <!-- Informations professionnelles -->
+                    <div class="col-12 mt-4">
+                        <h6 class="text-muted mb-3">
+                            <i class="bi bi-briefcase me-2"></i>Informations professionnelles
+                        </h6>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label required">Taux horaire</label>
+                        <div class="input-group">
+                            {{ form_widget(form.hourlyRate, {'attr': {'class': 'form-control', 'placeholder': 'Ex: 12.50'}}) }}
+                            <span class="input-group-text">€/h</span>
+                        </div>
+                        {{ form_errors(form.hourlyRate) }}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label required">Statut</label>
+                        {{ form_widget(form.status, {'attr': {'class': 'form-select'}}) }}
+                        {{ form_errors(form.status) }}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label required">Site d'affectation</label>
+                        {{ form_widget(form.site, {'attr': {'class': 'form-select'}}) }}
+                        {{ form_errors(form.site) }}
+                    </div>
+                </div>
+                
+                <hr class="my-4">
+                
+                <div class="d-flex justify-content-between align-items-center">
+                    <a href="{{ path('admin_agents') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Retour
+                    </a>
+                    <button type="submit" class="btn btn-phoenix">
+                        <i class="bi bi-check-lg me-1"></i>Créer l'agent
+                    </button>
+                </div>
+                
+                {{ form_end(form) }}
+            </div>
         </div>
-
-        <a href="{{ path('admin_agents') }}" class="btn btn-link mt-3">← Retour à la liste des agents</a>
+        
+        <!-- Tips Card -->
+        <div class="card mt-4 border-0 bg-light">
+            <div class="card-body">
+                <h6 class="mb-3"><i class="bi bi-lightbulb text-warning me-2"></i>Conseils</h6>
+                <ul class="small text-muted mb-0">
+                    <li>Le taux horaire standard est généralement entre 11€ et 15€/h</li>
+                    <li>Les heures de nuit bénéficient d'une majoration de 25%</li>
+                    <li>N'oubliez pas d'affecter l'agent à un site</li>
+                </ul>
+            </div>
+        </div>
     </div>
+</div>
 {% endblock %}

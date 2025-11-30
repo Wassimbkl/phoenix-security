@@ -16,6 +16,18 @@
             <div class="card-body">
                 {{ form_start(form, {'attr': {'class': 'needs-validation', 'novalidate': 'novalidate'}}) }}
                 
+                {# Affichage des erreurs globales (chevauchement de shifts) #}
+                {% if form.vars.errors|length > 0 %}
+                    <div class="alert alert-danger d-flex align-items-center mb-4" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <div>
+                            {% for error in form.vars.errors %}
+                                {{ error.message }}{% if not loop.last %}<br>{% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+                
                 <div class="row g-4">
                     <div class="col-md-6">
                         <label class="form-label required">Agent</label>

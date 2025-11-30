@@ -10,10 +10,13 @@
                     {% set weekStart = startDate %}
                     {% for i in 0..6 %}
                         {% set dayDate = weekStart|date_modify('+' ~ i ~ ' days') %}
-                        <th class="text-center py-3 {{ dayDate|date('Y-m-d') == today ? 'bg-primary bg-opacity-10' : '' }}" style="width: 14.28%;">
-                            <div class="fw-semibold">{{ days[i] }}</div>
-                            <div class="fs-4 {{ dayDate|date('Y-m-d') == today ? 'text-primary' : '' }}">{{ dayDate|date('d') }}</div>
-                            <small class="text-muted">{{ dayDate|date('M') }}</small>
+                        {% set dayDateKey = dayDate|date('Y-m-d') %}
+                        <th class="text-center py-3 {{ dayDateKey == today ? 'bg-primary bg-opacity-10' : '' }}" style="width: 14.28%;">
+                            <a href="{{ path('admin_planning_day', {date: dayDateKey}) }}" class="text-decoration-none {{ dayDateKey == today ? 'text-primary' : 'text-dark' }}">
+                                <div class="fw-semibold">{{ days[i] }}</div>
+                                <div class="fs-4 {{ dayDateKey == today ? 'text-primary' : '' }}">{{ dayDate|date('d') }}</div>
+                                <small class="text-muted">{{ dayDate|date('M') }}</small>
+                            </a>
                         </th>
                     {% endfor %}
                 </tr>
@@ -83,7 +86,9 @@
             
             <div class="calendar-day {{ isToday ? 'today' : '' }}">
                 <div class="calendar-day-number {{ isToday ? 'text-primary' : '' }}">
-                    {{ day }}
+                    <a href="{{ path('admin_planning_day', {date: dateKey}) }}" class="text-decoration-none {{ isToday ? 'text-primary' : 'text-dark' }}">
+                        {{ day }}
+                    </a>
                     {% if isToday %}
                         <span class="badge bg-primary ms-1" style="font-size: 0.6rem;">Aujourd'hui</span>
                     {% endif %}
@@ -98,9 +103,9 @@
                         </a>
                     {% endfor %}
                     {% if shiftsByDate[dateKey]|length > 3 %}
-                        <div class="small text-muted text-center">
-                            +{{ shiftsByDate[dateKey]|length - 3 }} autre(s)
-                        </div>
+                        <a href="{{ path('admin_planning_day', {date: dateKey}) }}" class="small text-primary text-center d-block text-decoration-none hover-underline">
+                            <i class="bi bi-plus-circle me-1"></i>+{{ shiftsByDate[dateKey]|length - 3 }} autre(s)
+                        </a>
                     {% endif %}
                 {% endif %}
             </div>
