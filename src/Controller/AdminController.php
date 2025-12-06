@@ -21,6 +21,7 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\MoneyType;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use App\Repository\ShiftRepository;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 
 #[Route('/admin')]
@@ -779,10 +780,52 @@ class AdminController extends AbstractController
         ]);
     }
 
+    #[Route('/users/{id}/edit', name: 'admin_user_edit', methods: ['POST'])]
+    public function editUser(Request $request, User $user, EntityManagerInterface $em, UserPasswordHasherInterface $passwordHasher): Response
+    {
+        $email = $request->request->get('email');
+        $role = $request->request->get('role');
+        $password = $request->request->get('password');
+
+        if ($email) {
+            $user->setEmail($email);
+        }
+        if ($role) {
+            $user->setRole($role);
+        }
+        if ($password && !empty(trim($password))) {
+            $hashedPassword = $passwordHasher->hashPassword($user, $password);
+            $user->setPassword($hashedPassword);
+        }
+
+        $em->flush();
+        $this->addFlash('success', 'Utilisateur modifié avec succès.');
+
+        return $this->redirectToRoute('admin_users');
+    }
+
+    #[Route('/users/{id}/delete', name: 'admin_user_delete', methods: ['POST'])]
+    public function deleteUser(Request $request, User $user, EntityManagerInterface $em): Response
+    {
+        if ($this->isCsrfTokenValid('delete' . $user->getId(), $request->request->get('_token'))) {
+            // Ne pas supprimer les admins
+            if ($user->getRole() === 'ADMIN') {
+                $this->addFlash('error', 'Impossible de supprimer un administrateur.');
+                return $this->redirectToRoute('admin_users');
+            }
+
+            $em->remove($user);
+            $em->flush();
+            $this->addFlash('success', 'Utilisateur supprimé avec succès.');
+        }
+
+        return $this->redirectToRoute('admin_users');
+    }
+
     // ==================== RAPPORTS ====================
 
     #[Route('/reports', name: 'admin_reports')]
-    public function reports(AgentRepository $agentRepo, ShiftRepository $shiftRepo, PaymentRepository $paymentRepo): Response
+    public function reports(AgentRepository $agentRepo, ShiftRepository $shiftRepo, PaymentRepository $paymentRepo, SiteRepository $siteRepo): Response
     {
         $currentMonth = date('Y-m');
         $startOfMonth = new \DateTime('first day of this month');
@@ -815,6 +858,269 @@ class AdminController extends AbstractController
                 'completion_rate' => $totalShifts > 0 ? round(($completedShifts / $totalShifts) * 100, 1) : 0,
             ],
             'agents' => $agentRepo->findAll(),
+            'sites' => $siteRepo->findAll(),
         ]);
+    }
+
+    #[Route('/reports/hours-csv', name: 'admin_report_hours_csv')]
+    public function exportHoursCsv(Request $request, AgentRepository $agentRepo, ShiftRepository $shiftRepo): Response
+    {
+        $period = $request->query->get('period', date('Y-m'));
+        $startDate = new \DateTime($period . '-01');
+        $endDate = (clone $startDate)->modify('last day of this month');
+
+        $agents = $agentRepo->findBy(['status' => 'ACTIF']);
+        
+        $rows = [];
+        $rows[] = ['Agent', 'Heures Jour', 'Heures Nuit', 'Total Heures', 'Taux Horaire', 'Montant Estimé'];
+
+        foreach ($agents as $agent) {
+            $shifts = $shiftRepo->createQueryBuilder('s')
+                ->where('s.agent = :agent')
+                ->andWhere('s.shiftDate BETWEEN :start AND :end')
+                ->andWhere('s.status = :status')
+                ->setParameter('agent', $agent)
+                ->setParameter('start', $startDate)
+                ->setParameter('end', $endDate)
+                ->setParameter('status', 'EFFECTUE')
+                ->getQuery()
+                ->getResult();
+
+            $hoursDay = 0;
+            $hoursNight = 0;
+
+            foreach ($shifts as $shift) {
+                $start = $shift->getStartTime();
+                $end = $shift->getEndTime();
+                $hours = ($end->getTimestamp() - $start->getTimestamp()) / 3600;
+                if ($hours < 0) $hours += 24;
+
+                if ($shift->getType() === 'NUIT') {
+                    $hoursNight += $hours;
+                } else {
+                    $hoursDay += $hours;
+                }
+            }
+
+            $totalHours = $hoursDay + $hoursNight;
+            $hourlyRate = (float) $agent->getHourlyRate();
+            $amount = ($hoursDay * $hourlyRate) + ($hoursNight * $hourlyRate * 1.25);
+
+            $rows[] = [
+                $agent->getFirstName() . ' ' . $agent->getLastName(),
+                number_format($hoursDay, 2),
+                number_format($hoursNight, 2),
+                number_format($totalHours, 2),
+                number_format($hourlyRate, 2) . '€',
+                number_format($amount, 2) . '€',
+            ];
+        }
+
+        $csv = $this->generateCsv($rows);
+        
+        $response = new Response($csv);
+        $response->headers->set('Content-Type', 'text/csv; charset=utf-8');
+        $response->headers->set('Content-Disposition', 'attachment; filename="rapport-heures-' . $period . '.csv"');
+        
+        return $response;
+    }
+
+    #[Route('/reports/payments-csv', name: 'admin_report_payments_csv')]
+    public function exportPaymentsCsv(Request $request, PaymentRepository $paymentRepo): Response
+    {
+        $periodFrom = $request->query->get('from', date('Y-m'));
+        $periodTo = $request->query->get('to', date('Y-m'));
+
+        $payments = $paymentRepo->createQueryBuilder('p')
+            ->leftJoin('p.agent', 'a')
+            ->where('p.period >= :from')
+            ->andWhere('p.period <= :to')
+            ->setParameter('from', $periodFrom)
+            ->setParameter('to', $periodTo)
+            ->orderBy('p.period', 'ASC')
+            ->addOrderBy('a.lastName', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        $rows = [];
+        $rows[] = ['Période', 'Agent', 'Heures Jour', 'Heures Nuit', 'Total Heures', 'Montant', 'Date Paiement', 'Statut'];
+
+        foreach ($payments as $payment) {
+            $rows[] = [
+                $payment->getPeriod(),
+                $payment->getAgent()->getFirstName() . ' ' . $payment->getAgent()->getLastName(),
+                $payment->getTotalHoursDay(),
+                $payment->getTotalHoursNight(),
+                (float)$payment->getTotalHoursDay() + (float)$payment->getTotalHoursNight(),
+                number_format((float)$payment->getTotalAmount(), 2) . '€',
+                $payment->getPaymentDate() ? $payment->getPaymentDate()->format('d/m/Y') : '',
+                $payment->getPaymentDate() ? 'Payé' : 'En attente',
+            ];
+        }
+
+        $csv = $this->generateCsv($rows);
+        
+        $response = new Response($csv);
+        $response->headers->set('Content-Type', 'text/csv; charset=utf-8');
+        $response->headers->set('Content-Disposition', 'attachment; filename="export-paiements-' . $periodFrom . '-a-' . $periodTo . '.csv"');
+        
+        return $response;
+    }
+
+    #[Route('/reports/agent/{id}', name: 'admin_report_agent')]
+    public function agentReport(Agent $agent, Request $request, ShiftRepository $shiftRepo, PaymentRepository $paymentRepo): Response
+    {
+        $period = $request->query->get('period', date('Y-m'));
+        $startDate = new \DateTime($period . '-01');
+        $endDate = (clone $startDate)->modify('last day of this month');
+
+        // Shifts du mois
+        $shifts = $shiftRepo->createQueryBuilder('s')
+            ->leftJoin('s.site', 'site')
+            ->where('s.agent = :agent')
+            ->andWhere('s.shiftDate BETWEEN :start AND :end')
+            ->setParameter('agent', $agent)
+            ->setParameter('start', $startDate)
+            ->setParameter('end', $endDate)
+            ->orderBy('s.shiftDate', 'ASC')
+            ->addOrderBy('s.startTime', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        // Calculs
+        $hoursDay = 0;
+        $hoursNight = 0;
+        $shiftsCompleted = 0;
+        $shiftsAbsent = 0;
+
+        foreach ($shifts as $shift) {
+            $start = $shift->getStartTime();
+            $end = $shift->getEndTime();
+            $hours = ($end->getTimestamp() - $start->getTimestamp()) / 3600;
+            if ($hours < 0) $hours += 24;
+
+            if ($shift->getStatus() === 'EFFECTUE') {
+                $shiftsCompleted++;
+                if ($shift->getType() === 'NUIT') {
+                    $hoursNight += $hours;
+                } else {
+                    $hoursDay += $hours;
+                }
+            } elseif ($shift->getStatus() === 'ABSENT') {
+                $shiftsAbsent++;
+            }
+        }
+
+        $hourlyRate = (float) $agent->getHourlyRate();
+        $amountDay = $hoursDay * $hourlyRate;
+        $amountNight = $hoursNight * $hourlyRate * 1.25;
+        $totalAmount = $amountDay + $amountNight;
+
+        // Paiement du mois
+        $payment = $paymentRepo->findOneBy(['agent' => $agent, 'period' => $period]);
+
+        return $this->render('admin/report_agent.html.twig', [
+            'agent' => $agent,
+            'period' => $period,
+            'shifts' => $shifts,
+            'stats' => [
+                'hours_day' => $hoursDay,
+                'hours_night' => $hoursNight,
+                'total_hours' => $hoursDay + $hoursNight,
+                'amount_day' => $amountDay,
+                'amount_night' => $amountNight,
+                'total_amount' => $totalAmount,
+                'shifts_total' => count($shifts),
+                'shifts_completed' => $shiftsCompleted,
+                'shifts_absent' => $shiftsAbsent,
+            ],
+            'payment' => $payment,
+        ]);
+    }
+
+    #[Route('/reports/sites', name: 'admin_report_sites')]
+    public function sitesReport(Request $request, SiteRepository $siteRepo, ShiftRepository $shiftRepo): Response
+    {
+        $period = $request->query->get('period', date('Y-m'));
+        $startDate = new \DateTime($period . '-01');
+        $endDate = (clone $startDate)->modify('last day of this month');
+
+        $sites = $siteRepo->findAll();
+        $sitesData = [];
+
+        foreach ($sites as $site) {
+            $shifts = $shiftRepo->createQueryBuilder('s')
+                ->leftJoin('s.agent', 'a')
+                ->where('s.site = :site')
+                ->andWhere('s.shiftDate BETWEEN :start AND :end')
+                ->setParameter('site', $site)
+                ->setParameter('start', $startDate)
+                ->setParameter('end', $endDate)
+                ->getQuery()
+                ->getResult();
+
+            $hoursDay = 0;
+            $hoursNight = 0;
+            $totalCost = 0;
+            $shiftsCompleted = 0;
+            $agents = [];
+
+            foreach ($shifts as $shift) {
+                $start = $shift->getStartTime();
+                $end = $shift->getEndTime();
+                $hours = ($end->getTimestamp() - $start->getTimestamp()) / 3600;
+                if ($hours < 0) $hours += 24;
+
+                if ($shift->getStatus() === 'EFFECTUE') {
+                    $shiftsCompleted++;
+                    $hourlyRate = (float) $shift->getAgent()->getHourlyRate();
+                    
+                    if ($shift->getType() === 'NUIT') {
+                        $hoursNight += $hours;
+                        $totalCost += $hours * $hourlyRate * 1.25;
+                    } else {
+                        $hoursDay += $hours;
+                        $totalCost += $hours * $hourlyRate;
+                    }
+                }
+
+                $agentId = $shift->getAgent()->getId();
+                if (!in_array($agentId, $agents)) {
+                    $agents[] = $agentId;
+                }
+            }
+
+            $sitesData[] = [
+                'site' => $site,
+                'shifts_total' => count($shifts),
+                'shifts_completed' => $shiftsCompleted,
+                'hours_day' => $hoursDay,
+                'hours_night' => $hoursNight,
+                'total_hours' => $hoursDay + $hoursNight,
+                'total_cost' => $totalCost,
+                'agents_count' => count($agents),
+            ];
+        }
+
+        return $this->render('admin/report_sites.html.twig', [
+            'period' => $period,
+            'sitesData' => $sitesData,
+        ]);
+    }
+
+    private function generateCsv(array $rows): string
+    {
+        $output = fopen('php://temp', 'r+');
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM UTF-8 pour Excel
+        
+        foreach ($rows as $row) {
+            fputcsv($output, $row, ';');
+        }
+        
+        rewind($output);
+        $csv = stream_get_contents($output);
+        fclose($output);
+        
+        return $csv;
     }
 }

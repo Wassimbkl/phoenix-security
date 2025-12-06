@@ -66,15 +66,87 @@
                             </td>
                             <td class="text-end">
                                 <div class="btn-group">
-                                    <button class="btn btn-sm btn-outline-primary" title="Modifier" disabled>
+                                    <button class="btn btn-sm btn-outline-primary" title="Modifier" 
+                                            data-bs-toggle="modal" data-bs-target="#editUserModal{{ user.id }}">
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                     {% if user.role != 'ADMIN' %}
-                                        <button class="btn btn-sm btn-outline-danger" title="Supprimer" disabled>
+                                        <button class="btn btn-sm btn-outline-danger" title="Supprimer"
+                                                data-bs-toggle="modal" data-bs-target="#deleteUserModal{{ user.id }}">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     {% endif %}
                                 </div>
+                                
+                                <!-- Modal Modifier -->
+                                <div class="modal fade" id="editUserModal{{ user.id }}" tabindex="-1">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header border-0">
+                                                <h5 class="modal-title"><i class="bi bi-pencil text-primary me-2"></i>Modifier l'utilisateur</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <form action="{{ path('admin_user_edit', {id: user.id}) }}" method="post">
+                                                <div class="modal-body">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Email</label>
+                                                        <input type="email" name="email" class="form-control" value="{{ user.email }}" required>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Rôle</label>
+                                                        <select name="role" class="form-select">
+                                                            <option value="AGENT" {{ user.role == 'AGENT' ? 'selected' : '' }}>Agent</option>
+                                                            <option value="ADMIN" {{ user.role == 'ADMIN' ? 'selected' : '' }}>Administrateur</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Nouveau mot de passe <small class="text-muted">(laisser vide pour ne pas changer)</small></label>
+                                                        <input type="password" name="password" class="form-control" placeholder="••••••••">
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer border-0">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                                    <button type="submit" class="btn btn-primary">
+                                                        <i class="bi bi-check-lg me-2"></i>Enregistrer
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {% if user.role != 'ADMIN' %}
+                                <!-- Modal Supprimer -->
+                                <div class="modal fade" id="deleteUserModal{{ user.id }}" tabindex="-1">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header border-0">
+                                                <h5 class="modal-title"><i class="bi bi-exclamation-triangle text-danger me-2"></i>Confirmer la suppression</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p>Êtes-vous sûr de vouloir supprimer cet utilisateur ?</p>
+                                                <div class="bg-danger bg-opacity-10 rounded-3 p-3">
+                                                    <strong>{{ user.email }}</strong><br>
+                                                    <small class="text-muted">Rôle: {{ user.role }}</small>
+                                                </div>
+                                                <p class="text-danger small mt-3 mb-0">
+                                                    <i class="bi bi-exclamation-circle me-1"></i>Cette action est irréversible.
+                                                </p>
+                                            </div>
+                                            <div class="modal-footer border-0">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                                <form action="{{ path('admin_user_delete', {id: user.id}) }}" method="post" class="d-inline">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ user.id) }}">
+                                                    <button type="submit" class="btn btn-danger">
+                                                        <i class="bi bi-trash me-2"></i>Supprimer
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
                             </td>
                         </tr>
                     {% else %}

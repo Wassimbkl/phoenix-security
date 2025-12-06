@@ -1,0 +1,289 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}Fiche Agent - {{ agent.firstName }} {{ agent.lastName }} - Phoenix Security{% endblock %}
+
+{% block page_title %}
+    <i class="bi bi-person-badge me-2"></i>Fiche Agent
+{% endblock %}
+
+{% block page_subtitle %}
+    {{ agent.firstName }} {{ agent.lastName }} - {{ period }}
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <a href="{{ path('admin_reports') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-2"></i>Retour aux rapports
+    </a>
+    <div class="d-flex gap-2">
+        <form method="get" class="d-flex gap-2">
+            <input type="month" name="period" class="form-control" value="{{ period }}" onchange="this.form.submit()">
+        </form>
+        <button onclick="window.print()" class="btn btn-phoenix">
+            <i class="bi bi-printer me-2"></i>Imprimer
+        </button>
+    </div>
+</div>
+
+<!-- Entête pour impression -->
+<div class="card mb-4 print-header">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h2 class="mb-1">Phoenix Security</h2>
+                <p class="text-muted mb-0">Fiche de travail mensuelle</p>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <h4 class="mb-1">{{ agent.firstName }} {{ agent.lastName }}</h4>
+                {% set monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'] %}
+                {% set periodParts = period|split('-') %}
+                <p class="text-muted mb-0">{{ monthNames[periodParts[1]|number_format - 1] }} {{ periodParts[0] }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Infos Agent -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-person me-2 text-primary"></i>Informations Agent
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <td class="text-muted" style="width: 40%;">Nom complet</td>
+                        <td><strong>{{ agent.firstName }} {{ agent.lastName }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Téléphone</td>
+                        <td>{{ agent.phone ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Site principal</td>
+                        <td>{{ agent.site.name }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Taux horaire</td>
+                        <td><strong>{{ agent.hourlyRate|number_format(2, ',', ' ') }}€/h</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Statut</td>
+                        <td>
+                            <span class="badge {{ agent.status == 'ACTIF' ? 'bg-success' : 'bg-secondary' }}">
+                                {{ agent.status }}
+                            </span>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-calculator me-2 text-success"></i>Récapitulatif du mois
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <td class="text-muted" style="width: 50%;">Shifts planifiés</td>
+                        <td><strong>{{ stats.shifts_total }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Shifts effectués</td>
+                        <td><strong class="text-success">{{ stats.shifts_completed }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Absences</td>
+                        <td><strong class="text-danger">{{ stats.shifts_absent }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Heures jour</td>
+                        <td><strong>{{ stats.hours_day|number_format(2, ',', ' ') }}h</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Heures nuit (+25%)</td>
+                        <td><strong>{{ stats.hours_night|number_format(2, ',', ' ') }}h</strong></td>
+                    </tr>
+                    <tr class="border-top">
+                        <td class="text-muted"><strong>Total heures</strong></td>
+                        <td><strong class="fs-5">{{ stats.total_hours|number_format(2, ',', ' ') }}h</strong></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Calcul du salaire -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-currency-euro me-2 text-warning"></i>Calcul de la rémunération
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table">
+                <thead class="bg-light">
+                    <tr>
+                        <th>Type</th>
+                        <th class="text-center">Heures</th>
+                        <th class="text-center">Taux</th>
+                        <th class="text-end">Montant</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <i class="bi bi-sun text-warning me-2"></i>
+                            Heures de jour
+                        </td>
+                        <td class="text-center">{{ stats.hours_day|number_format(2, ',', ' ') }}h</td>
+                        <td class="text-center">{{ agent.hourlyRate|number_format(2, ',', ' ') }}€/h</td>
+                        <td class="text-end">{{ stats.amount_day|number_format(2, ',', ' ') }}€</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <i class="bi bi-moon-stars text-dark me-2"></i>
+                            Heures de nuit <span class="badge bg-info">+25%</span>
+                        </td>
+                        <td class="text-center">{{ stats.hours_night|number_format(2, ',', ' ') }}h</td>
+                        <td class="text-center">{{ (agent.hourlyRate * 1.25)|number_format(2, ',', ' ') }}€/h</td>
+                        <td class="text-end">{{ stats.amount_night|number_format(2, ',', ' ') }}€</td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr class="table-light">
+                        <td colspan="3"><strong>TOTAL À PAYER</strong></td>
+                        <td class="text-end"><strong class="fs-4 text-success">{{ stats.total_amount|number_format(2, ',', ' ') }}€</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        
+        {% if payment %}
+            <div class="alert {{ payment.paymentDate ? 'alert-success' : 'alert-warning' }} mt-3 mb-0">
+                <i class="bi {{ payment.paymentDate ? 'bi-check-circle' : 'bi-hourglass' }} me-2"></i>
+                {% if payment.paymentDate %}
+                    Paiement effectué le <strong>{{ payment.paymentDate|date('d/m/Y') }}</strong> - Montant: <strong>{{ payment.totalAmount|number_format(2, ',', ' ') }}€</strong>
+                {% else %}
+                    Paiement en attente
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Détail des shifts -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list-ul me-2 text-info"></i>Détail des shifts</span>
+        <span class="badge bg-primary">{{ shifts|length }} shift(s)</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Site</th>
+                        <th>Horaires</th>
+                        <th class="text-center">Type</th>
+                        <th class="text-center">Durée</th>
+                        <th class="text-center">Statut</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for shift in shifts %}
+                        {% set start = shift.startTime %}
+                        {% set end = shift.endTime %}
+                        {% set hours = ((end.timestamp - start.timestamp) / 3600) %}
+                        {% if hours < 0 %}{% set hours = hours + 24 %}{% endif %}
+                        
+                        <tr class="{{ shift.status == 'ABSENT' ? 'table-danger' : '' }}">
+                            <td>
+                                <strong>{{ shift.shiftDate|date('d/m/Y') }}</strong>
+                                <br><small class="text-muted">{{ shift.shiftDate|date('l')|capitalize }}</small>
+                            </td>
+                            <td>{{ shift.site.name }}</td>
+                            <td>{{ shift.startTime|date('H:i') }} - {{ shift.endTime|date('H:i') }}</td>
+                            <td class="text-center">
+                                {% if shift.type == 'NUIT' %}
+                                    <span class="badge bg-dark"><i class="bi bi-moon-stars me-1"></i>Nuit</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark"><i class="bi bi-sun me-1"></i>Jour</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">{{ hours|number_format(1) }}h</td>
+                            <td class="text-center">
+                                {% if shift.status == 'EFFECTUE' %}
+                                    <span class="badge bg-success">Effectué</span>
+                                {% elseif shift.status == 'ABSENT' %}
+                                    <span class="badge bg-danger">Absent</span>
+                                {% else %}
+                                    <span class="badge bg-info">Prévu</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">
+                                Aucun shift pour cette période
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Signature -->
+<div class="row mt-4 print-only">
+    <div class="col-6">
+        <div class="border-top pt-3">
+            <p class="mb-0"><strong>Signature de l'agent</strong></p>
+            <p class="text-muted small">Date: _______________</p>
+        </div>
+    </div>
+    <div class="col-6">
+        <div class="border-top pt-3">
+            <p class="mb-0"><strong>Signature de l'employeur</strong></p>
+            <p class="text-muted small">Date: _______________</p>
+        </div>
+    </div>
+</div>
+
+<style>
+    @media print {
+        .btn, .form-control, nav, .sidebar, header {
+            display: none !important;
+        }
+        .card {
+            border: 1px solid #ddd !important;
+            box-shadow: none !important;
+        }
+        .print-only {
+            display: block !important;
+        }
+        .print-header {
+            display: block !important;
+        }
+        body {
+            padding: 0 !important;
+        }
+        .main-content {
+            margin-left: 0 !important;
+            padding: 20px !important;
+        }
+    }
+    
+    @media screen {
+        .print-only {
+            display: none;
+        }
+    }
+</style>
+{% endblock %}

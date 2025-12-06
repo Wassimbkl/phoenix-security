@@ -58,20 +58,17 @@
                 Rapport mensuel des heures
             </div>
             <div class="card-body">
-                <p class="text-muted">Génère un rapport détaillé des heures travaillées par agent pour un mois donné.</p>
+                <p class="text-muted">Génère un rapport CSV des heures travaillées par agent pour un mois donné.</p>
                 
-                <form class="row g-3">
+                <form action="{{ path('admin_report_hours_csv') }}" method="get" class="row g-3">
                     <div class="col-12">
                         <label class="form-label">Période</label>
-                        <input type="month" class="form-control" value="{{ currentMonth }}">
+                        <input type="month" name="period" class="form-control" value="{{ currentMonth }}">
                     </div>
                     <div class="col-12">
-                        <button type="button" class="btn btn-phoenix w-100" disabled>
-                            <i class="bi bi-download me-2"></i>Télécharger PDF
+                        <button type="submit" class="btn btn-phoenix w-100">
+                            <i class="bi bi-download me-2"></i>Télécharger CSV
                         </button>
-                        <small class="text-muted d-block mt-2">
-                            <i class="bi bi-info-circle me-1"></i>Fonctionnalité disponible prochainement
-                        </small>
                     </div>
                 </form>
             </div>
@@ -85,24 +82,21 @@
                 Export des paiements
             </div>
             <div class="card-body">
-                <p class="text-muted">Exporte la liste des paiements au format Excel pour la comptabilité.</p>
+                <p class="text-muted">Exporte la liste des paiements au format CSV pour la comptabilité.</p>
                 
-                <form class="row g-3">
+                <form action="{{ path('admin_report_payments_csv') }}" method="get" class="row g-3">
                     <div class="col-6">
                         <label class="form-label">De</label>
-                        <input type="month" class="form-control" value="{{ currentMonth }}">
+                        <input type="month" name="from" class="form-control" value="{{ currentMonth }}">
                     </div>
                     <div class="col-6">
                         <label class="form-label">À</label>
-                        <input type="month" class="form-control" value="{{ currentMonth }}">
+                        <input type="month" name="to" class="form-control" value="{{ currentMonth }}">
                     </div>
                     <div class="col-12">
-                        <button type="button" class="btn btn-success w-100" disabled>
-                            <i class="bi bi-file-earmark-excel me-2"></i>Exporter Excel
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="bi bi-file-earmark-excel me-2"></i>Exporter CSV
                         </button>
-                        <small class="text-muted d-block mt-2">
-                            <i class="bi bi-info-circle me-1"></i>Fonctionnalité disponible prochainement
-                        </small>
                     </div>
                 </form>
             </div>
@@ -118,10 +112,10 @@
             <div class="card-body">
                 <p class="text-muted">Génère une fiche récapitulative pour un agent spécifique.</p>
                 
-                <form class="row g-3">
+                <form id="agentReportForm" class="row g-3">
                     <div class="col-12">
                         <label class="form-label">Agent</label>
-                        <select class="form-select">
+                        <select id="agentSelect" class="form-select" required>
                             <option value="">Sélectionner un agent</option>
                             {% for agent in agents %}
                                 <option value="{{ agent.id }}">{{ agent.firstName }} {{ agent.lastName }}</option>
@@ -130,15 +124,12 @@
                     </div>
                     <div class="col-12">
                         <label class="form-label">Période</label>
-                        <input type="month" class="form-control" value="{{ currentMonth }}">
+                        <input type="month" id="agentPeriod" class="form-control" value="{{ currentMonth }}">
                     </div>
                     <div class="col-12">
-                        <button type="button" class="btn btn-info w-100 text-white" disabled>
-                            <i class="bi bi-printer me-2"></i>Imprimer la fiche
+                        <button type="button" id="viewAgentReport" class="btn btn-info w-100 text-white">
+                            <i class="bi bi-eye me-2"></i>Voir la fiche
                         </button>
-                        <small class="text-muted d-block mt-2">
-                            <i class="bi bi-info-circle me-1"></i>Fonctionnalité disponible prochainement
-                        </small>
                     </div>
                 </form>
             </div>
@@ -154,18 +145,15 @@
             <div class="card-body">
                 <p class="text-muted">Vue d'ensemble des heures et coûts par site de travail.</p>
                 
-                <form class="row g-3">
+                <form action="{{ path('admin_report_sites') }}" method="get" class="row g-3">
                     <div class="col-12">
                         <label class="form-label">Période</label>
-                        <input type="month" class="form-control" value="{{ currentMonth }}">
+                        <input type="month" name="period" class="form-control" value="{{ currentMonth }}">
                     </div>
                     <div class="col-12">
-                        <button type="button" class="btn btn-warning w-100" disabled>
-                            <i class="bi bi-bar-chart me-2"></i>Générer le rapport
+                        <button type="submit" class="btn btn-warning w-100">
+                            <i class="bi bi-bar-chart me-2"></i>Voir le rapport
                         </button>
-                        <small class="text-muted d-block mt-2">
-                            <i class="bi bi-info-circle me-1"></i>Fonctionnalité disponible prochainement
-                        </small>
                     </div>
                 </form>
             </div>
@@ -178,10 +166,25 @@
     <div class="card-body">
         <h6><i class="bi bi-lightbulb text-warning me-2"></i>Conseils</h6>
         <ul class="mb-0 small text-muted">
-            <li>Les rapports PDF incluent automatiquement le logo de l'entreprise et les informations légales</li>
-            <li>L'export Excel est compatible avec tous les logiciels de comptabilité courants</li>
-            <li>Les fiches agents peuvent être utilisées comme justificatifs de paiement</li>
+            <li>Les fichiers <strong>CSV</strong> s'ouvrent facilement avec Excel, Google Sheets ou LibreOffice</li>
+            <li>Les fiches agents peuvent être <strong>imprimées</strong> directement depuis le navigateur</li>
+            <li>Le rapport par site permet d'analyser les <strong>coûts</strong> par emplacement</li>
+            <li>Seuls les shifts avec le statut <strong>"Effectué"</strong> sont comptabilisés dans les calculs</li>
         </ul>
     </div>
 </div>
+
+<script>
+document.getElementById('viewAgentReport').addEventListener('click', function() {
+    const agentId = document.getElementById('agentSelect').value;
+    const period = document.getElementById('agentPeriod').value;
+    
+    if (!agentId) {
+        alert('Veuillez sélectionner un agent');
+        return;
+    }
+    
+    window.location.href = '/admin/reports/agent/' + agentId + '?period=' + period;
+});
+</script>
 {% endblock %}
