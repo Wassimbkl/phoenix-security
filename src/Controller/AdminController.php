@@ -755,6 +755,20 @@ class AdminController extends AbstractController
         return $this->redirectToRoute('admin_payments', ['period' => $period]);
     }
 
+    #[Route('/payments/{id}/mark-paid', name: 'admin_payment_mark_paid', methods: ['POST'])]
+    public function markPaymentPaid(Request $request, Payment $payment, EntityManagerInterface $em): Response
+    {
+        $paymentDate = $request->request->get('payment_date');
+        
+        if ($paymentDate) {
+            $payment->setPaymentDate(new \DateTime($paymentDate));
+            $em->flush();
+            $this->addFlash('success', 'Paiement marqué comme effectué.');
+        }
+
+        return $this->redirectToRoute('app_payment_show', ['id' => $payment->getId()]);
+    }
+
     // ==================== UTILISATEURS ====================
 
     #[Route('/users', name: 'admin_users')]

@@ -52,14 +52,14 @@
 <!-- Filters & Actions -->
 <div class="card mb-4">
     <div class="card-body">
-        <form method="get" class="row g-3 align-items-end">
+        <div class="row g-3 align-items-end">
             <div class="col-12 col-md-3">
                 <label class="form-label small text-muted">Période</label>
-                <input type="month" name="period" class="form-control" value="{{ currentPeriod }}">
+                <input type="month" id="periodFilter" class="form-control" value="{{ currentPeriod }}">
             </div>
             <div class="col-12 col-md-3">
                 <label class="form-label small text-muted">Agent</label>
-                <select name="agent" class="form-select">
+                <select id="agentFilter" class="form-select">
                     <option value="">Tous les agents</option>
                     {% for agent in agents %}
                         <option value="{{ agent.id }}" {{ currentAgent == agent.id ? 'selected' : '' }}>
@@ -69,21 +69,49 @@
                 </select>
             </div>
             <div class="col-6 col-md-2">
-                <button type="submit" class="btn btn-outline-phoenix w-100">
+                <button type="button" id="filterBtn" class="btn btn-outline-phoenix w-100">
                     <i class="bi bi-funnel me-1"></i>Filtrer
                 </button>
             </div>
             <div class="col-6 col-md-4 text-end">
-                <form method="post" action="{{ path('admin_payments_generate') }}" style="display: inline;">
-                    <input type="hidden" name="period" value="{{ currentPeriod }}">
-                    <button type="submit" class="btn btn-phoenix" onclick="return confirm('Générer les paiements pour {{ currentPeriod }} ?')">
-                        <i class="bi bi-calculator me-2"></i>Générer paiements
-                    </button>
-                </form>
+                <button type="button" id="generateBtn" class="btn btn-phoenix">
+                    <i class="bi bi-calculator me-2"></i>Générer paiements
+                </button>
             </div>
-        </form>
+        </div>
     </div>
 </div>
+
+<!-- Formulaire caché pour générer les paiements -->
+<form id="generateForm" method="post" action="{{ path('admin_payments_generate') }}" style="display: none;">
+    <input type="hidden" name="period" id="generatePeriod" value="{{ currentPeriod }}">
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Filtrer
+    document.getElementById('filterBtn').addEventListener('click', function() {
+        const period = document.getElementById('periodFilter').value;
+        const agent = document.getElementById('agentFilter').value;
+        
+        let url = '{{ path('admin_payments') }}?';
+        if (period) url += 'period=' + period + '&';
+        if (agent) url += 'agent=' + agent;
+        
+        window.location.href = url;
+    });
+    
+    // Générer paiements
+    document.getElementById('generateBtn').addEventListener('click', function() {
+        const period = document.getElementById('periodFilter').value;
+        document.getElementById('generatePeriod').value = period;
+        
+        if (confirm('Générer les paiements pour ' + period + ' ?')) {
+            document.getElementById('generateForm').submit();
+        }
+    });
+});
+</script>
 
 <!-- Payments List -->
 <div class="card">

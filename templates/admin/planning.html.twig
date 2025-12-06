@@ -9,69 +9,58 @@
 <!-- Controls -->
 <div class="card mb-4">
     <div class="card-body">
-        <div class="row g-3 align-items-center">
-            <div class="col-auto">
-                <div class="btn-group" role="group">
-                    <a href="{{ path('admin_planning', {view: 'week', date: currentDate|date('Y-m-d')}) }}" 
-                       class="btn {{ view == 'week' ? 'btn-phoenix' : 'btn-outline-phoenix' }}"
-                       hx-get="{{ path('admin_planning_calendar', {view: 'week', date: currentDate|date('Y-m-d')}) }}"
-                       hx-target="#calendar-container"
-                       hx-push-url="{{ path('admin_planning', {view: 'week', date: currentDate|date('Y-m-d')}) }}">
-                        <i class="bi bi-calendar-week me-1"></i>Semaine
-                    </a>
-                    <a href="{{ path('admin_planning', {view: 'month', date: currentDate|date('Y-m-d')}) }}" 
-                       class="btn {{ view == 'month' ? 'btn-phoenix' : 'btn-outline-phoenix' }}"
-                       hx-get="{{ path('admin_planning_calendar', {view: 'month', date: currentDate|date('Y-m-d')}) }}"
-                       hx-target="#calendar-container"
-                       hx-push-url="{{ path('admin_planning', {view: 'month', date: currentDate|date('Y-m-d')}) }}">
-                        <i class="bi bi-calendar-month me-1"></i>Mois
-                    </a>
-                </div>
+        <div class="d-flex flex-wrap gap-3 align-items-center justify-content-between">
+            <!-- Navigation & Vue -->
+            <div class="d-flex align-items-center gap-2">
+                {% if view == 'week' %}
+                    {% set prevDate = currentDate|date_modify('-1 week')|date('Y-m-d') %}
+                    {% set nextDate = currentDate|date_modify('+1 week')|date('Y-m-d') %}
+                {% else %}
+                    {% set prevDate = currentDate|date_modify('-1 month')|date('Y-m-d') %}
+                    {% set nextDate = currentDate|date_modify('+1 month')|date('Y-m-d') %}
+                {% endif %}
+                
+                <button class="btn btn-outline-secondary btn-sm"
+                        hx-get="{{ path('admin_planning_calendar', {view: view, date: prevDate}) }}"
+                        hx-target="#calendar-container">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+                
+                <input type="month" 
+                       id="monthPicker" 
+                       class="form-control form-control-sm" 
+                       value="{{ currentDate|date('Y-m') }}"
+                       style="width: 160px;">
+                
+                <button class="btn btn-outline-secondary btn-sm"
+                        hx-get="{{ path('admin_planning_calendar', {view: view, date: nextDate}) }}"
+                        hx-target="#calendar-container">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+                
+                <button class="btn btn-outline-secondary btn-sm"
+                        hx-get="{{ path('admin_planning_calendar', {view: view, date: 'now'|date('Y-m-d')}) }}"
+                        hx-target="#calendar-container">
+                    Aujourd'hui
+                </button>
             </div>
             
-            <div class="col-auto">
-                <div class="btn-group">
-                    {% if view == 'week' %}
-                        {% set prevDate = currentDate|date_modify('-1 week')|date('Y-m-d') %}
-                        {% set nextDate = currentDate|date_modify('+1 week')|date('Y-m-d') %}
-                    {% else %}
-                        {% set prevDate = currentDate|date_modify('-1 month')|date('Y-m-d') %}
-                        {% set nextDate = currentDate|date_modify('+1 month')|date('Y-m-d') %}
-                    {% endif %}
-                    
-                    <button class="btn btn-outline-secondary"
-                            hx-get="{{ path('admin_planning_calendar', {view: view, date: prevDate}) }}"
-                            hx-target="#calendar-container">
-                        <i class="bi bi-chevron-left"></i>
-                    </button>
-                    <button class="btn btn-outline-secondary"
-                            hx-get="{{ path('admin_planning_calendar', {view: view, date: 'now'|date('Y-m-d')}) }}"
-                            hx-target="#calendar-container">
-                        Aujourd'hui
-                    </button>
-                    <button class="btn btn-outline-secondary"
-                            hx-get="{{ path('admin_planning_calendar', {view: view, date: nextDate}) }}"
-                            hx-target="#calendar-container">
-                        <i class="bi bi-chevron-right"></i>
-                    </button>
-                </div>
-            </div>
-            
-            <div class="col-auto">
-                <h5 class="mb-0">
-                    {% if view == 'week' %}
-                        Semaine du {{ startDate|date('d/m') }} au {{ endDate|date('d/m/Y') }}
-                    {% else %}
-                        {{ currentDate|date('F Y')|capitalize }}
-                    {% endif %}
-                </h5>
-            </div>
-            
-            <div class="col-auto ms-auto">
-                <a href="{{ path('admin_shift_new') }}" class="btn btn-phoenix">
-                    <i class="bi bi-plus-lg me-2"></i>Nouveau shift
+            <!-- Vue Semaine/Mois -->
+            <div class="btn-group btn-group-sm" role="group">
+                <a href="{{ path('admin_planning', {view: 'week', date: currentDate|date('Y-m-d')}) }}" 
+                   class="btn {{ view == 'week' ? 'btn-phoenix' : 'btn-outline-phoenix' }}">
+                    <i class="bi bi-calendar-week me-1"></i>Semaine
+                </a>
+                <a href="{{ path('admin_planning', {view: 'month', date: currentDate|date('Y-m-d')}) }}" 
+                   class="btn {{ view == 'month' ? 'btn-phoenix' : 'btn-outline-phoenix' }}">
+                    <i class="bi bi-calendar-month me-1"></i>Mois
                 </a>
             </div>
+            
+            <!-- Nouveau shift -->
+            <a href="{{ path('admin_shift_new') }}" class="btn btn-phoenix btn-sm">
+                <i class="bi bi-plus-lg me-1"></i>Nouveau shift
+            </a>
         </div>
     </div>
 </div>
@@ -83,13 +72,19 @@
     </div>
 </div>
 
-<style>
-    .calendar-container {
-        overflow-x: auto;
-    }
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const monthPicker = document.getElementById('monthPicker');
+    const currentView = '{{ view }}';
     
-    .fc-day-today {
-        background-color: rgba(79, 70, 229, 0.05) !important;
-    }
-</style>
+    // Changement direct du mois
+    monthPicker.addEventListener('change', function() {
+        const selectedMonth = monthPicker.value;
+        if (selectedMonth) {
+            const date = selectedMonth + '-01';
+            window.location.href = '{{ path('admin_planning') }}?view=' + currentView + '&date=' + date;
+        }
+    });
+});
+</script>
 {% endblock %}
