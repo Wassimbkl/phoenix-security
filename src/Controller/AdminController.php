@@ -146,7 +146,7 @@ class AdminController extends AbstractController
             ->getQuery()
             ->getSingleScalarResult();
 
-        return $this->render('admin/agents.html.twig', [
+        return $this->render('admin/agents/agents.html.twig', [
             'agents' => $agents,
             'stats' => [
                 'total_agents' => $totalAgents,
@@ -211,11 +211,7 @@ class AdminController extends AbstractController
                 'label' => 'Salaire horaire',
                 'currency' => 'EUR'
             ])
-            ->add('site', EntityType::class, [
-                'class' => Site::class,
-                'choice_label' => 'name',
-                'label' => 'Site'
-            ])
+            
             ->getForm()
         ;
 
@@ -232,7 +228,7 @@ class AdminController extends AbstractController
             return $this->redirectToRoute('admin_agents');
         }
 
-        return $this->render('admin/agent_new.html.twig', [
+        return $this->render('admin/agents/agent_new.html.twig', [
             'form' => $form->createView(),
         ]);
     }
@@ -273,7 +269,7 @@ class AdminController extends AbstractController
             return $this->redirectToRoute('admin_agents');
         }
 
-        return $this->render('admin/agent_edit.html.twig', [
+        return $this->render('admin/agents/agent_edit.html.twig', [
             'form' => $form->createView(),
             'agent' => $agent,
         ]);
@@ -332,7 +328,7 @@ class AdminController extends AbstractController
             $shiftsByDate[$dateKey][] = $shift;
         }
 
-        return $this->render('admin/planning.html.twig', [
+        return $this->render('admin/shifts/planning.html.twig', [
             'view' => $view,
             'currentDate' => $currentDate,
             'startDate' => $startDate,
@@ -376,7 +372,7 @@ class AdminController extends AbstractController
             $shiftsByDate[$dateKey][] = $shift;
         }
 
-        return $this->render('admin/_planning_calendar.html.twig', [
+        return $this->render('admin/shifts/_planning_calendar.html.twig', [
             'view' => $view,
             'currentDate' => $currentDate,
             'startDate' => $startDate,
@@ -397,7 +393,7 @@ class AdminController extends AbstractController
             ->getQuery()
             ->getResult();
 
-        return $this->render('admin/planning_day.html.twig', [
+        return $this->render('admin/shifts/planning_day.html.twig', [
             'date' => $currentDate,
             'shifts' => $shifts,
             'agents' => $agentRepo->findBy(['status' => 'ACTIF']),
@@ -461,7 +457,7 @@ class AdminController extends AbstractController
             return $this->redirectToRoute('admin_planning');
         }
 
-        return $this->render('admin/shift_new.html.twig', [
+        return $this->render('admin/shifts/shift_new.html.twig', [
             'form' => $form->createView(),
         ]);
     }
@@ -524,7 +520,7 @@ class AdminController extends AbstractController
             return $this->redirectToRoute('admin_planning');
         }
 
-        return $this->render('admin/shift_edit.html.twig', [
+        return $this->render('admin/shifts/shift_edit.html.twig', [
             'form' => $form->createView(),
             'shift' => $shift,
         ]);
@@ -562,7 +558,7 @@ class AdminController extends AbstractController
             ];
         }
 
-        return $this->render('admin/sites.html.twig', [
+        return $this->render('admin/sites/sites.html.twig', [
             'sites' => $sitesWithStats,
         ]);
     }
@@ -589,7 +585,7 @@ class AdminController extends AbstractController
             return $this->redirectToRoute('admin_sites');
         }
 
-        return $this->render('admin/site_new.html.twig', [
+        return $this->render('admin/sites/site_new.html.twig', [
             'form' => $form->createView(),
         ]);
     }
@@ -618,7 +614,7 @@ class AdminController extends AbstractController
             return $this->redirectToRoute('admin_sites');
         }
 
-        return $this->render('admin/site_edit.html.twig', [
+        return $this->render('admin/sites/site_edit.html.twig', [
             'form' => $form->createView(),
             'site' => $site,
         ]);
@@ -668,7 +664,7 @@ class AdminController extends AbstractController
         $totalAmount = array_sum(array_map(fn($p) => (float)$p->getTotalAmount(), $payments));
         $totalHours = array_sum(array_map(fn($p) => (float)$p->getTotalHoursDay() + (float)$p->getTotalHoursNight(), $payments));
 
-        return $this->render('admin/payments.html.twig', [
+        return $this->render('admin/payments/payments.html.twig', [
             'payments' => $payments,
             'agents' => $agentRepo->findAll(),
             'currentPeriod' => $period,
@@ -809,7 +805,7 @@ class AdminController extends AbstractController
     #[Route('/users', name: 'admin_users')]
     public function users(UserRepository $userRepo): Response
     {
-        return $this->render('admin/users.html.twig', [
+        return $this->render('admin/users/users.html.twig', [
             'users' => $userRepo->findAll(),
         ]);
     }
@@ -884,7 +880,7 @@ class AdminController extends AbstractController
             ->getQuery()
             ->getSingleScalarResult();
 
-        return $this->render('admin/reports.html.twig', [
+        return $this->render('admin/reports/reports.html.twig', [
             'currentMonth' => $currentMonth,
             'stats' => [
                 'total_shifts' => $totalShifts,
@@ -1053,7 +1049,7 @@ class AdminController extends AbstractController
         // Paiement du mois
         $payment = $paymentRepo->findOneBy(['agent' => $agent, 'period' => $period]);
 
-        return $this->render('admin/report_agent.html.twig', [
+        return $this->render('admin/reports/report_agent.html.twig', [
             'agent' => $agent,
             'period' => $period,
             'shifts' => $shifts,
@@ -1136,7 +1132,7 @@ class AdminController extends AbstractController
             ];
         }
 
-        return $this->render('admin/report_sites.html.twig', [
+        return $this->render('admin/reports/report_sites.html.twig', [
             'period' => $period,
             'sitesData' => $sitesData,
         ]);

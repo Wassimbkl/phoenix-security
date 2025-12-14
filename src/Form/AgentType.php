@@ -3,7 +3,6 @@
 namespace App\Form;
 
 use App\Entity\Agent;
-use App\Entity\Site;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -50,7 +49,11 @@ class AgentType extends AbstractType
                 ],
                 'placeholder' => 'Choisir un statut'
             ])
+<<<<<<< HEAD
            
+=======
+            
+>>>>>>> main
         ;
     }
 
