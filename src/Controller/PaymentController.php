@@ -49,20 +49,11 @@ class PaymentController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'app_payment_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Payment $payment, PaymentRepository $paymentRepository): Response
+    public function edit(Request $request, Payment $payment, PaymentRepository $paymentRepository, \App\Repository\AgentRepository $agentRepo): Response
     {
-        $form = $this->createForm(PaymentType::class, $payment);
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            $paymentRepository->add($payment, true);
-
-            return $this->redirectToRoute('app_payment_index', [], Response::HTTP_SEE_OTHER);
-        }
-
-        return $this->renderForm('payment/edit.html.twig', [
+        return $this->render('admin/payment_edit.html.twig', [
             'payment' => $payment,
-            'form' => $form,
+            'agents' => $agentRepo->findAll(),
         ]);
     }
 

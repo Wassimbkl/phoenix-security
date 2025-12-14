@@ -50,13 +50,7 @@ class AgentType extends AbstractType
                 ],
                 'placeholder' => 'Choisir un statut'
             ])
-            ->add('site', EntityType::class, [
-                'class' => Site::class,
-                'choice_label' => 'name',
-                'label' => 'Site d\'affectation',
-                'placeholder' => 'Choisir un site',
-                'required' => false,
-            ])
+           
         ;
     }
 
