@@ -43,7 +43,7 @@ class PaymentController extends AbstractController
     #[Route('/{id}', name: 'app_payment_show', methods: ['GET'])]
     public function show(Payment $payment): Response
     {
-        return $this->render('admin/payment_show.html.twig', [
+        return $this->render('admin/payments/payment_show.html.twig', [
             'payment' => $payment,
         ]);
     }

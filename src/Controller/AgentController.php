@@ -44,7 +44,7 @@ class AgentController extends AbstractController
             return $this->redirectToRoute('admin_agents');
         }
 
-        return $this->render('admin/agent_new.html.twig', [
+        return $this->render('admin/agents/agent_new.html.twig', [
             'form' => $form->createView(),
         ]);
     }
