@@ -1,0 +1,233 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}Modifier Paiement - {{ payment.agent.firstName }} {{ payment.agent.lastName }} - Phoenix Security{% endblock %}
+
+{% block page_title %}
+    <i class="bi bi-pencil me-2"></i>Modifier le Paiement
+{% endblock %}
+
+{% block page_subtitle %}
+    {{ payment.agent.firstName }} {{ payment.agent.lastName }} - Période {{ payment.period }}
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <a href="{{ path('admin_payments') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Retour aux paiements
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0 pt-4">
+                <h5 class="mb-0"><i class="bi bi-receipt me-2 text-primary"></i>Informations du paiement</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ path('admin_payment_update', {id: payment.id}) }}">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Agent</label>
+                            <select name="agent" class="form-select" required>
+                                {% for agent in agents %}
+                                    <option value="{{ agent.id }}" {{ payment.agent.id == agent.id ? 'selected' : '' }}>
+                                        {{ agent.firstName }} {{ agent.lastName }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">Période</label>
+                            <input type="month" name="period" class="form-control" value="{{ payment.period }}" required>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="bi bi-sun text-warning me-1"></i>Heures de jour
+                            </label>
+                            <div class="input-group">
+                                <input type="number" name="totalHoursDay" class="form-control" 
+                                       value="{{ payment.totalHoursDay }}" step="0.5" min="0" required>
+                                <span class="input-group-text">heures</span>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="bi bi-moon-stars text-dark me-1"></i>Heures de nuit
+                            </label>
+                            <div class="input-group">
+                                <input type="number" name="totalHoursNight" class="form-control" 
+                                       value="{{ payment.totalHoursNight }}" step="0.5" min="0" required>
+                                <span class="input-group-text">heures</span>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="bi bi-currency-euro text-success me-1"></i>Montant total
+                            </label>
+                            <div class="input-group">
+                                <input type="number" name="totalAmount" class="form-control" 
+                                       value="{{ payment.totalAmount }}" step="0.01" min="0" required>
+                                <span class="input-group-text">€</span>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="bi bi-calendar-check text-info me-1"></i>Date de paiement
+                            </label>
+                            <input type="date" name="paymentDate" class="form-control" 
+                                   value="{{ payment.paymentDate ? payment.paymentDate|date('Y-m-d') : '' }}">
+                            <small class="text-muted">Laisser vide si non payé</small>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                            <i class="bi bi-trash me-2"></i>Supprimer
+                        </button>
+                        <div class="d-flex gap-2">
+                            <a href="{{ path('admin_payments') }}" class="btn btn-secondary">Annuler</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg me-2"></i>Enregistrer
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- Résumé Agent -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0 pt-4">
+                <h6 class="mb-0"><i class="bi bi-person me-2 text-primary"></i>Agent</h6>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    <div class="avatar-xl mx-auto mb-3">
+                        {{ payment.agent.firstName|slice(0, 1)|upper }}{{ payment.agent.lastName|slice(0, 1)|upper }}
+                    </div>
+                    <h5 class="mb-1">{{ payment.agent.firstName }} {{ payment.agent.lastName }}</h5>
+                    <span class="badge {{ payment.agent.status == 'ACTIF' ? 'bg-success' : 'bg-secondary' }}">
+                        {{ payment.agent.status }}
+                    </span>
+                </div>
+                <ul class="list-unstyled mb-0">
+                    <li class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted">Taux horaire</span>
+                        <strong>{{ payment.agent.hourlyRate|number_format(2, ',', ' ') }}€/h</strong>
+                    </li>
+                    <li class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted">Site</span>
+                        <strong>{{ payment.agent.site.name }}</strong>
+                    </li>
+                    <li class="d-flex justify-content-between py-2">
+                        <span class="text-muted">Téléphone</span>
+                        <strong>{{ payment.agent.phone ?? '-' }}</strong>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Calcul automatique -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0 pt-4">
+                <h6 class="mb-0"><i class="bi bi-calculator me-2 text-warning"></i>Calcul estimé</h6>
+            </div>
+            <div class="card-body">
+                <div id="calculEstime">
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span>Heures jour</span>
+                        <span id="estHoursDay">{{ payment.totalHoursDay }}h × {{ payment.agent.hourlyRate }}€</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span>Heures nuit (+25%)</span>
+                        <span id="estHoursNight">{{ payment.totalHoursNight }}h × {{ (payment.agent.hourlyRate * 1.25)|number_format(2) }}€</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-2 fw-bold text-success">
+                        <span>Total estimé</span>
+                        <span id="estTotal">{{ payment.totalAmount|number_format(2, ',', ' ') }}€</span>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-outline-primary btn-sm w-100 mt-3" id="recalculer">
+                    <i class="bi bi-arrow-repeat me-2"></i>Recalculer automatiquement
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Suppression -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle text-danger me-2"></i>Confirmer la suppression</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer ce paiement ?</p>
+                <div class="bg-danger bg-opacity-10 rounded-3 p-3">
+                    <strong>{{ payment.agent.firstName }} {{ payment.agent.lastName }}</strong><br>
+                    Période: {{ payment.period }}<br>
+                    Montant: {{ payment.totalAmount|number_format(2, ',', ' ') }}€
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form action="{{ path('app_payment_delete', {id: payment.id}) }}" method="post" class="d-inline">
+                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ payment.id) }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-2"></i>Supprimer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .avatar-xl {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--phoenix-primary), var(--phoenix-secondary));
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+        font-weight: 600;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const hourlyRate = {{ payment.agent.hourlyRate }};
+    const hoursDay = document.querySelector('input[name="totalHoursDay"]');
+    const hoursNight = document.querySelector('input[name="totalHoursNight"]');
+    const totalAmount = document.querySelector('input[name="totalAmount"]');
+    
+    document.getElementById('recalculer').addEventListener('click', function() {
+        const day = parseFloat(hoursDay.value) || 0;
+        const night = parseFloat(hoursNight.value) || 0;
+        const total = (day * hourlyRate) + (night * hourlyRate * 1.25);
+        
+        totalAmount.value = total.toFixed(2);
+        
+        document.getElementById('estHoursDay').textContent = day + 'h × ' + hourlyRate + '€';
+        document.getElementById('estHoursNight').textContent = night + 'h × ' + (hourlyRate * 1.25).toFixed(2) + '€';
+        document.getElementById('estTotal').textContent = total.toFixed(2).replace('.', ',') + '€';
+    });
+});
+</script>
+{% endblock %}

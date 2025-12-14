@@ -49,7 +49,11 @@ class AgentType extends AbstractType
                 ],
                 'placeholder' => 'Choisir un statut'
             ])
+<<<<<<< HEAD
+           
+=======
             
+>>>>>>> main
         ;
     }
 

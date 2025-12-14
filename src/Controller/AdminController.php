@@ -766,6 +766,40 @@ class AdminController extends AbstractController
         return $this->redirectToRoute('app_payment_show', ['id' => $payment->getId()]);
     }
 
+    #[Route('/payments/{id}/update', name: 'admin_payment_update', methods: ['POST'])]
+    public function updatePayment(Request $request, Payment $payment, EntityManagerInterface $em, AgentRepository $agentRepo): Response
+    {
+        $agentId = $request->request->get('agent');
+        $period = $request->request->get('period');
+        $totalHoursDay = $request->request->get('totalHoursDay');
+        $totalHoursNight = $request->request->get('totalHoursNight');
+        $totalAmount = $request->request->get('totalAmount');
+        $paymentDate = $request->request->get('paymentDate');
+
+        if ($agentId) {
+            $agent = $agentRepo->find($agentId);
+            if ($agent) {
+                $payment->setAgent($agent);
+            }
+        }
+        
+        $payment->setPeriod($period);
+        $payment->setTotalHoursDay($totalHoursDay);
+        $payment->setTotalHoursNight($totalHoursNight);
+        $payment->setTotalAmount($totalAmount);
+        
+        if ($paymentDate) {
+            $payment->setPaymentDate(new \DateTime($paymentDate));
+        } else {
+            $payment->setPaymentDate(null);
+        }
+
+        $em->flush();
+        $this->addFlash('success', 'Paiement modifié avec succès.');
+
+        return $this->redirectToRoute('admin_payments');
+    }
+
     // ==================== UTILISATEURS ====================
 
     #[Route('/users', name: 'admin_users')]
