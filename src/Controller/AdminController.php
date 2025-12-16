@@ -1033,76 +1033,92 @@ class AdminController extends AbstractController
             'payment' => $payment,
         ]);
     }
+    
+    
 
-    #[Route('/reports/sites', name: 'admin_report_sites')]
-    public function sitesReport(Request $request, SiteRepository $siteRepo, ShiftRepository $shiftRepo): Response
-    {
-        $period = $request->query->get('period', date('Y-m'));
-        $startDate = new \DateTime($period . '-01');
-        $endDate = (clone $startDate)->modify('last day of this month');
+   #[Route('/reports/sites', name: 'admin_report_sites')]
+public function sitesReport(Request $request, SiteRepository $siteRepo, ShiftRepository $shiftRepo): Response
+{
+    // Récupération des paramètres
+    $period = $request->query->get('period', date('Y-m'));
+    $siteId = $request->query->get('site'); //  Le site sélectionné
 
+    $startDate = new \DateTime($period . '-01');
+    $endDate = (clone $startDate)->modify('last day of this month');
+
+    // Si un site est sélectionné → on ne prend que celui-là
+    if ($siteId) {
+        $site = $siteRepo->find($siteId);
+        $sites = $site ? [$site] : [];
+    } else {
+        // Sinon tous les sites
         $sites = $siteRepo->findAll();
-        $sitesData = [];
+    }
 
-        foreach ($sites as $site) {
-            $shifts = $shiftRepo->createQueryBuilder('s')
-                ->leftJoin('s.agent', 'a')
-                ->where('s.site = :site')
-                ->andWhere('s.shiftDate BETWEEN :start AND :end')
-                ->setParameter('site', $site)
-                ->setParameter('start', $startDate)
-                ->setParameter('end', $endDate)
-                ->getQuery()
-                ->getResult();
+    $sitesData = [];
 
-            $hoursDay = 0;
-            $hoursNight = 0;
-            $totalCost = 0;
-            $shiftsCompleted = 0;
-            $agents = [];
+    foreach ($sites as $site) {
+        $shifts = $shiftRepo->createQueryBuilder('s')
+            ->leftJoin('s.agent', 'a')
+            ->where('s.site = :site')
+            ->andWhere('s.shiftDate BETWEEN :start AND :end')
+            ->setParameter('site', $site)
+            ->setParameter('start', $startDate)
+            ->setParameter('end', $endDate)
+            ->getQuery()
+            ->getResult();
 
-            foreach ($shifts as $shift) {
-                $start = $shift->getStartTime();
-                $end = $shift->getEndTime();
-                $hours = ($end->getTimestamp() - $start->getTimestamp()) / 3600;
-                if ($hours < 0) $hours += 24;
+        $hoursDay = 0;
+        $hoursNight = 0;
+        $totalCost = 0;
+        $shiftsCompleted = 0;
+        $agents = [];
 
-                if ($shift->getStatus() === 'EFFECTUE') {
-                    $shiftsCompleted++;
-                    $hourlyRate = (float) $shift->getAgent()->getHourlyRate();
-                    
-                    if ($shift->getType() === 'NUIT') {
-                        $hoursNight += $hours;
-                        $totalCost += $hours * $hourlyRate * 1.25;
-                    } else {
-                        $hoursDay += $hours;
-                        $totalCost += $hours * $hourlyRate;
-                    }
-                }
+        foreach ($shifts as $shift) {
+            $start = $shift->getStartTime();
+            $end = $shift->getEndTime();
 
-                $agentId = $shift->getAgent()->getId();
-                if (!in_array($agentId, $agents)) {
-                    $agents[] = $agentId;
+            $hours = ($end->getTimestamp() - $start->getTimestamp()) / 3600;
+            if ($hours < 0) $hours += 24;
+
+            if ($shift->getStatus() === 'EFFECTUE') {
+                $shiftsCompleted++;
+                $hourlyRate = (float) $shift->getAgent()->getHourlyRate();
+
+                if ($shift->getType() === 'NUIT') {
+                    $hoursNight += $hours;
+                    $totalCost += $hours * $hourlyRate * 1.25;
+                } else {
+                    $hoursDay += $hours;
+                    $totalCost += $hours * $hourlyRate;
                 }
             }
 
-            $sitesData[] = [
-                'site' => $site,
-                'shifts_total' => count($shifts),
-                'shifts_completed' => $shiftsCompleted,
-                'hours_day' => $hoursDay,
-                'hours_night' => $hoursNight,
-                'total_hours' => $hoursDay + $hoursNight,
-                'total_cost' => $totalCost,
-                'agents_count' => count($agents),
-            ];
+            $agentId = $shift->getAgent()->getId();
+            if (!in_array($agentId, $agents)) {
+                $agents[] = $agentId;
+            }
         }
 
-        return $this->render('admin/reports/report_sites.html.twig', [
-            'period' => $period,
-            'sitesData' => $sitesData,
-        ]);
+        $sitesData[] = [
+            'site' => $site,
+            'shifts_total' => count($shifts),
+            'shifts_completed' => $shiftsCompleted,
+            'hours_day' => $hoursDay,
+            'hours_night' => $hoursNight,
+            'total_hours' => $hoursDay + $hoursNight,
+            'total_cost' => $totalCost,
+            'agents_count' => count($agents),
+        ];
     }
+
+    return $this->render('admin/reports/report_sites.html.twig', [
+        'period' => $period,
+        'sitesData' => $sitesData,
+        'siteId' => $siteId, // 👈 Pour garder la sélection dans le formulaire
+    ]);
+}
+
 
     private function generateCsv(array $rows): string
     {
@@ -1119,4 +1135,84 @@ class AdminController extends AbstractController
         
         return $csv;
     }
+
+
+    #[Route('/reports/site/{id}/details', name: 'admin_report_site_details')]
+public function siteDetails(
+    Site $site,
+    Request $request,
+    ShiftRepository $shiftRepo
+): Response {
+    $period = $request->query->get('period', date('Y-m'));
+    $startDate = new \DateTime($period . '-01');
+    $endDate = (clone $startDate)->modify('last day of this month');
+
+    // Récupérer tous les shifts du site sur la période
+    $shifts = $shiftRepo->createQueryBuilder('s')
+        ->leftJoin('s.agent', 'a')
+        ->addSelect('a')
+        ->where('s.site = :site')
+        ->andWhere('s.shiftDate BETWEEN :start AND :end')
+        ->setParameter('site', $site)
+        ->setParameter('start', $startDate)
+        ->setParameter('end', $endDate)
+        ->orderBy('a.lastName', 'ASC')
+        ->addOrderBy('s.shiftDate', 'ASC')
+        ->addOrderBy('s.startTime', 'ASC')
+        ->getQuery()
+        ->getResult();
+
+    // Regrouper par agent
+    $agentsData = [];
+
+    foreach ($shifts as $shift) {
+        $agent = $shift->getAgent();
+        if (!$agent) {
+            continue;
+        }
+
+        $agentId = $agent->getId();
+
+        if (!isset($agentsData[$agentId])) {
+            $agentsData[$agentId] = [
+                'agent' => $agent,
+                'shifts' => [],
+                'hours_day' => 0,
+                'hours_night' => 0,
+                'total_hours' => 0,
+            ];
+        }
+
+        $start = $shift->getStartTime();
+        $end = $shift->getEndTime();
+        $hours = ($end->getTimestamp() - $start->getTimestamp()) / 3600;
+        if ($hours < 0) $hours += 24;
+
+        if ($shift->getStatus() === 'EFFECTUE') {
+            if ($shift->getType() === 'NUIT') {
+                $agentsData[$agentId]['hours_night'] += $hours;
+            } else {
+                $agentsData[$agentId]['hours_day'] += $hours;
+            }
+
+            $agentsData[$agentId]['total_hours'] += $hours;
+        }
+
+        $agentsData[$agentId]['shifts'][] = $shift;
+    }
+
+    return $this->render('admin/reports/report_site_details.html.twig', [
+        'site' => $site,
+        'period' => $period,
+        'agentsData' => $agentsData,
+    ]);
+}
+
+    
+
+    
+
+    
+
+    
 }

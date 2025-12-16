@@ -1,0 +1,87 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}Détails du site - {{ site.name }}{% endblock %}
+
+{% block page_title %}
+    <i class="bi bi-building me-2"></i>{{ site.name }}
+{% endblock %}
+
+{% block page_subtitle %}
+    Période : {{ period }}
+{% endblock %}
+
+{% block content %}
+
+<a href="{{ path('admin_report_sites', { period: period }) }}"
+   class="btn btn-outline-secondary mb-4">
+    <i class="bi bi-arrow-left me-2"></i>Retour au rapport
+</a>
+<div class="d-flex justify-content-between align-items-center mb-4 no-print">
+    
+    <button onclick="window.print()" class="btn btn-primary">
+        <i class="bi bi-printer me-2"></i>Imprimer (PDF)
+    </button>
+</div>
+{% for data in agentsData %}
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <strong>
+            {{ data.agent.firstName }} {{ data.agent.lastName }}
+        </strong>
+        <span class="badge bg-primary">
+            {{ data.total_hours|number_format(1) }} h
+        </span>
+    </div>
+
+    <div class="card-body">
+        <p class="text-muted mb-3">
+            ☀ Jour : {{ data.hours_day|number_format(1) }}h —
+            🌙 Nuit : {{ data.hours_night|number_format(1) }}h
+        </p>
+
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Début</th>
+                        <th>Fin</th>
+                        <th>Type</th>
+                        <th>Statut</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for shift in data.shifts %}
+                    <tr>
+                        <td>{{ shift.shiftDate|date('d/m/Y') }}</td>
+                        <td>{{ shift.startTime|date('H:i') }}</td>
+                        <td>{{ shift.endTime|date('H:i') }}</td>
+                        <td>
+                            {% if shift.type == 'NUIT' %}
+                                🌙 Nuit
+                            {% else %}
+                                ☀ Jour
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge
+                                {% if shift.status == 'EFFECTUE' %}bg-success
+                                {% elseif shift.status == 'ABSENT' %}bg-danger
+                                {% else %}bg-secondary{% endif %}">
+                                {{ shift.status }}
+                            </span>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info">
+    Aucun shift pour ce site sur cette période.
+</div>
+{% endfor %}
+
+{% endblock %}

@@ -81,32 +81,7 @@
                 <small>{% block page_subtitle %}{% endblock %}</small>
             </h1>
         </div>
-        <div class="d-flex align-items-center gap-3">
-            <div class="dropdown">
-                <button class="btn btn-light position-relative" data-bs-toggle="dropdown">
-                    <i class="bi bi-bell"></i>
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
-                        3
-                    </span>
-                </button>
-                <div class="dropdown-menu dropdown-menu-end p-3" style="width: 300px;">
-                    <h6 class="dropdown-header">Notifications</h6>
-                    <div class="dropdown-item small">
-                        <i class="bi bi-exclamation-triangle text-warning me-2"></i>
-                        2 shifts non assignés demain
-                    </div>
-                    <div class="dropdown-item small">
-                        <i class="bi bi-clock text-danger me-2"></i>
-                        1 agent en retard
-                    </div>
-                    <div class="dropdown-item small">
-                        <i class="bi bi-file-text text-info me-2"></i>
-                        Rapport mensuel disponible
-                    </div>
-                </div>
-            </div>
-            <span class="text-muted small">{{ "now"|date("d/m/Y") }}</span>
-        </div>
+        
     </header>
     
     <!-- Content -->
