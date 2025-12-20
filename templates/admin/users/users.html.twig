@@ -25,7 +25,7 @@
         <div class="stat-card">
             <div class="d-flex justify-content-between align-items-start">
                 <div>
-                    <div class="stat-card-value">{{ users|select(user => user.role == 'ADMIN')|length }}</div>
+                    <div class="stat-card-value">{{ users|filter(user => user.role == 'ADMIN')|length }}</div>
                     <div class="stat-card-label">Administrateurs</div>
                 </div>
                 <div class="stat-card-icon danger">
@@ -38,7 +38,7 @@
         <div class="stat-card">
             <div class="d-flex justify-content-between align-items-start">
                 <div>
-                    <div class="stat-card-value">{{ users|select(user => user.role == 'AGENT')|length }}</div>
+                    <div class="stat-card-value">{{ users|filter(user => user.role == 'AGENT')|length }}</div>
                     <div class="stat-card-label">Agents</div>
                 </div>
                 <div class="stat-card-icon info">

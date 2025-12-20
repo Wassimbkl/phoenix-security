@@ -128,8 +128,16 @@
                 
                 <ul class="list-unstyled mb-0">
                     <li class="d-flex justify-content-between py-2 border-bottom">
-                        <span class="text-muted"><i class="bi bi-building me-2"></i>Site</span>
-                        <strong>{{ agent.site ? agent.site.name : 'Non assigné' }}</strong>
+                        <span class="text-muted"><i class="bi bi-building me-2"></i>Sites</span>
+                        <strong>
+                            {% set siteNames = [] %}
+                            {% for shift in agent.shifts %}
+                                {% if shift.site.name not in siteNames %}
+                                    {% set siteNames = siteNames|merge([shift.site.name]) %}
+                                {% endif %}
+                            {% endfor %}
+                            {{ siteNames|join(', ') ?: 'Aucun' }}
+                        </strong>
                     </li>
                     <li class="d-flex justify-content-between py-2 border-bottom">
                         <span class="text-muted"><i class="bi bi-telephone me-2"></i>Téléphone</span>

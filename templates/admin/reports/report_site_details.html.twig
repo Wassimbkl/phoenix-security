@@ -18,9 +18,10 @@
 </a>
 <div class="d-flex justify-content-between align-items-center mb-4 no-print">
     
-    <button onclick="window.print()" class="btn btn-primary">
-        <i class="bi bi-printer me-2"></i>Imprimer (PDF)
-    </button>
+    <a href="{{ path('admin_report_site_facture', { id: site.id, period: period }) }}" 
+       class="btn btn-phoenix" target="_blank">
+        <i class="bi bi-file-earmark-pdf me-2"></i>Générer la facture PDF
+    </a>
 </div>
 {% for data in agentsData %}
 <div class="card mb-4">

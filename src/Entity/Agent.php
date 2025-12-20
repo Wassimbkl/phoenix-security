@@ -19,10 +19,6 @@ class Agent
     #[ORM\JoinColumn(nullable: false)]
     private ?User $user = null;
 
-    #[ORM\ManyToOne(targetEntity: Site::class)]
-    #[ORM\JoinColumn(nullable: false)]
-    private ?Site $site = null;
-
     #[ORM\Column(length: 100)]
     private ?string $firstName = null;
 
@@ -134,17 +130,6 @@ class Agent
     public function setUser(?User $user): self
     {
         $this->user = $user;
-        return $this;
-    }
-
-    public function getSite(): ?Site
-    {
-        return $this->site;
-    }
-
-    public function setSite(?Site $site): self
-    {
-        $this->site = $site;
         return $this;
     }
 

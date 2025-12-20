@@ -42,6 +42,7 @@ $manager->persist($user);
 
         // --- 2. Créer quelques agents ---
         $agents = [];
+        $agentSites = [];
         $agentData = [
             ['Jean', 'Dupont', '06.12.34.56.78', 12.50, 'ACTIF'],
             ['Marie', 'Martin', '06.98.76.54.32', 11.00, 'ACTIF'],
@@ -56,19 +57,20 @@ $manager->persist($user);
             $agent->setHourlyRate($rate);
             $agent->setHireDate(new \DateTime('2023-05-01'));
             $agent->setStatus($status);
-            $agent->setSite($sites[$i % count($sites)]);
             $manager->persist($agent);
             $agents[] = $agent;
             $agent->setUser($user);
-
+            
+            // Stocker le site correspondant pour les shifts
+            $agentSites[$i] = $sites[$i % count($sites)];
         }
 
         // --- 3. Créer des shifts ---
-        foreach ($agents as $agent) {
+        foreach ($agents as $index => $agent) {
             for ($i = 1; $i <= 5; $i++) {
                 $shift = new Shift();
                 $shift->setAgent($agent);
-                $shift->setSite($agent->getSite());
+                $shift->setSite($agentSites[$index]);
                 $shift->setShiftDate(new \DateTime('2025-11-' . rand(1, 7)));
                 $shift->setStartTime(new \DateTime('08:00'));
                 $shift->setEndTime(new \DateTime('16:00'));

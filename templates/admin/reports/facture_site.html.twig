@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Facture - {{ site.name }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'DejaVu Sans', Arial, sans-serif;
+            font-size: 12px;
+            color: #333;
+            line-height: 1.5;
+        }
+        
+        .container {
+            padding: 30px;
+        }
+        
+        /* Header */
+        .header {
+            display: table;
+            width: 100%;
+            margin-bottom: 40px;
+            border-bottom: 3px solid #f97316;
+            padding-bottom: 20px;
+        }
+        
+        .logo-section {
+            display: table-cell;
+            width: 50%;
+            vertical-align: top;
+        }
+        
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #f97316;
+        }
+        
+        .logo span {
+            color: #1e293b;
+        }
+        
+        .company-info {
+            display: table-cell;
+            width: 50%;
+            text-align: right;
+            vertical-align: top;
+            font-size: 11px;
+            color: #64748b;
+        }
+        
+        /* Invoice Info */
+        .invoice-info {
+            display: table;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        
+        .invoice-details {
+            display: table-cell;
+            width: 50%;
+            vertical-align: top;
+        }
+        
+        .client-details {
+            display: table-cell;
+            width: 50%;
+            text-align: right;
+            vertical-align: top;
+        }
+        
+        .invoice-number {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 10px;
+        }
+        
+        .label {
+            color: #64748b;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 3px;
+        }
+        
+        .value {
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .client-box {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            display: inline-block;
+            text-align: left;
+        }
+        
+        .client-name {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 5px;
+        }
+        
+        /* Table */
+        .table-section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: #1e293b;
+            color: white;
+            padding: 12px 10px;
+            text-align: left;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        th:last-child {
+            text-align: right;
+        }
+        
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        td:last-child {
+            text-align: right;
+        }
+        
+        tr:nth-child(even) {
+            background: #f8fafc;
+        }
+        
+        .agent-name {
+            font-weight: 600;
+            color: #1e293b;
+        }
+        
+        .hours-detail {
+            font-size: 10px;
+            color: #64748b;
+        }
+        
+        /* Totals */
+        .totals-section {
+            margin-top: 20px;
+            display: table;
+            width: 100%;
+        }
+        
+        .totals-spacer {
+            display: table-cell;
+            width: 60%;
+        }
+        
+        .totals-box {
+            display: table-cell;
+            width: 40%;
+        }
+        
+        .total-row {
+            display: table;
+            width: 100%;
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .total-label {
+            display: table-cell;
+            color: #64748b;
+        }
+        
+        .total-value {
+            display: table-cell;
+            text-align: right;
+            font-weight: 600;
+        }
+        
+        .grand-total {
+            background: #f97316;
+            color: white;
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+        
+        .grand-total .total-label,
+        .grand-total .total-value {
+            color: white;
+            font-size: 14px;
+        }
+        
+        /* Footer */
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+            color: #64748b;
+            font-size: 10px;
+        }
+        
+        .footer-note {
+            margin-bottom: 10px;
+        }
+        
+        /* Summary Stats */
+        .stats-row {
+            display: table;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        
+        .stat-box {
+            display: table-cell;
+            width: 25%;
+            padding: 15px;
+            background: #f8fafc;
+            text-align: center;
+            border-right: 3px solid white;
+        }
+        
+        .stat-box:last-child {
+            border-right: none;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #f97316;
+        }
+        
+        .stat-label {
+            font-size: 10px;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+        
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: 600;
+        }
+        
+        .badge-success {
+            background: #dcfce7;
+            color: #15803d;
+        }
+        
+        .badge-danger {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        
+        .badge-secondary {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo-section">
+                <div class="logo">Phoenix<span>Security</span></div>
+                <p style="color: #64748b; margin-top: 5px;">Services de sécurité privée</p>
+            </div>
+            <div class="company-info">
+                <strong>Phoenix Security SARL</strong><br>
+                123 Avenue de la Sécurité<br>
+                75001 Paris, France<br>
+                Tél: 01 23 45 67 89<br>
+                contact@phoenix-security.fr
+            </div>
+        </div>
+        
+        <!-- Invoice Info -->
+        <div class="invoice-info">
+            <div class="invoice-details">
+                <div class="invoice-number">FACTURE #{{ invoiceNumber }}</div>
+                <div class="label">Date d'émission</div>
+                <div class="value">{{ invoiceDate|date('d/m/Y') }}</div>
+                <div class="label">Période de facturation</div>
+                <div class="value">{{ periodLabel }}</div>
+            </div>
+            <div class="client-details">
+                <div class="client-box">
+                    <div class="label">Facturé à</div>
+                    <div class="client-name">{{ site.name }}</div>
+                    <div>{{ site.address }}</div>
+                    {% if site.city %}
+                        <div>{{ site.city }}</div>
+                    {% endif %}
+                    {% if site.contactName %}
+                        <div style="margin-top: 5px;">Contact: {{ site.contactName }}</div>
+                    {% endif %}
+                    {% if site.contactPhone %}
+                        <div>Tél: {{ site.contactPhone }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Stats Summary -->
+        <div class="stats-row">
+            <div class="stat-box">
+                <div class="stat-value">{{ totalShifts }}</div>
+                <div class="stat-label">Interventions</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">{{ totalHoursDay|number_format(1) }}h</div>
+                <div class="stat-label">Heures jour</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">{{ totalHoursNight|number_format(1) }}h</div>
+                <div class="stat-label">Heures nuit</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">{{ totalHours|number_format(1) }}h</div>
+                <div class="stat-label">Total heures</div>
+            </div>
+        </div>
+        
+        <!-- Agents Table -->
+        <div class="table-section">
+            <div class="section-title">Détail par Agent</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Agent</th>
+                        <th>Interventions</th>
+                        <th>H. Jour</th>
+                        <th>H. Nuit</th>
+                        <th>Total</th>
+                        <th>Montant HT</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set subtotal = 0 %}
+                    {% for data in agentsData %}
+                        {% set agentAmount = (data.hours_day * hourlyRateDay) + (data.hours_night * hourlyRateNight) %}
+                        {% set subtotal = subtotal + agentAmount %}
+                        <tr>
+                            <td class="agent-name">{{ data.agent.firstName }} {{ data.agent.lastName }}</td>
+                            <td>{{ data.shifts|length }}</td>
+                            <td>{{ data.hours_day|number_format(1) }}h</td>
+                            <td>{{ data.hours_night|number_format(1) }}h</td>
+                            <td><strong>{{ data.total_hours|number_format(1) }}h</strong></td>
+                            <td><strong>{{ agentAmount|number_format(2, ',', ' ') }} €</strong></td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: #64748b;">Aucune intervention sur cette période</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Totals -->
+        <div class="totals-section">
+            <div class="totals-spacer">
+                <p style="color: #64748b; font-size: 10px;">
+                    <strong>Taux horaires appliqués:</strong><br>
+                    Heures de jour: {{ hourlyRateDay|number_format(2, ',', ' ') }} €/h<br>
+                    Heures de nuit: {{ hourlyRateNight|number_format(2, ',', ' ') }} €/h
+                </p>
+            </div>
+            <div class="totals-box">
+                <div class="total-row">
+                    <span class="total-label">Sous-total HT</span>
+                    <span class="total-value">{{ subtotal|number_format(2, ',', ' ') }} €</span>
+                </div>
+                <div class="total-row">
+                    <span class="total-label">TVA (20%)</span>
+                    <span class="total-value">{{ (subtotal * 0.20)|number_format(2, ',', ' ') }} €</span>
+                </div>
+                <div class="grand-total">
+                    <div class="total-row" style="border: none; padding: 0;">
+                        <span class="total-label">TOTAL TTC</span>
+                        <span class="total-value">{{ (subtotal * 1.20)|number_format(2, ',', ' ') }} €</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p class="footer-note">
+                <strong>Conditions de paiement:</strong> Paiement à 30 jours fin de mois<br>
+                En cas de retard de paiement, des pénalités de 3 fois le taux d'intérêt légal seront appliquées.
+            </p>
+            <p>
+                Phoenix Security SARL - SIRET: 123 456 789 00012 - TVA: FR12345678901<br>
+                Document généré le {{ 'now'|date('d/m/Y à H:i') }}
+            </p>
+        </div>
+    </div>
+</body>
+</html>

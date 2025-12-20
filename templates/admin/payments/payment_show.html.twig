@@ -71,12 +71,6 @@
                             <span>{{ payment.agent.phone }}</span>
                         </li>
                     {% endif %}
-                    {% if payment.agent.site %}
-                        <li class="d-flex align-items-center py-2 border-bottom">
-                            <i class="bi bi-building text-muted me-3"></i>
-                            <span>{{ payment.agent.site.name }}</span>
-                        </li>
-                    {% endif %}
                     {% if payment.agent.hireDate %}
                         <li class="d-flex align-items-center py-2 border-bottom">
                             <i class="bi bi-calendar-check text-muted me-3"></i>

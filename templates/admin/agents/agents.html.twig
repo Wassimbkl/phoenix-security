@@ -93,21 +93,16 @@
                 </select>
             </div>
             <div class="col-6 col-md-2">
-                <label class="form-label small text-muted">Site</label>
+                <label class="form-label small text-muted">Statut</label>
                 <select class="form-select"
                         hx-get="{{ path('admin_agents_search') }}"
                         hx-trigger="change"
                         hx-target="#agents-list"
-                        hx-include="[name='q'], [name='status']"
-                        name="site">
-                    <option value="">Tous les sites</option>
-                    {% set sites_seen = [] %}
-                    {% for agent in agents %}
-                        {% if agent.site and agent.site.id not in sites_seen %}
-                            <option value="{{ agent.site.id }}">{{ agent.site.name }}</option>
-                            {% set sites_seen = sites_seen|merge([agent.site.id]) %}
-                        {% endif %}
-                    {% endfor %}
+                        hx-include="[name='q']"
+                        name="status">
+                    <option value="">Tous</option>
+                    <option value="ACTIF">Actif</option>
+                    <option value="INACTIF">Inactif</option>
                 </select>
             </div>
             <div class="col-12 col-md-4 text-end">

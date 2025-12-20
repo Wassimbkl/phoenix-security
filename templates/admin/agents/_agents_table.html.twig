@@ -35,13 +35,22 @@
                 {% endif %}
             </td>
             <td>
-                {% if agent.site %}
+                {% set siteNames = [] %}
+                {% for shift in agent.shifts %}
+                    {% if shift.site.name not in siteNames %}
+                        {% set siteNames = siteNames|merge([shift.site.name]) %}
+                    {% endif %}
+                {% endfor %}
+                {% if siteNames|length > 0 %}
                     <span class="badge bg-light text-dark">
                         <i class="bi bi-building me-1"></i>
-                        {{ agent.site.name }}
+                        {{ siteNames|first }}
+                        {% if siteNames|length > 1 %}
+                            <span class="text-muted">+{{ siteNames|length - 1 }}</span>
+                        {% endif %}
                     </span>
                 {% else %}
-                    <span class="text-muted">Non assigné</span>
+                    <span class="text-muted">Aucun site</span>
                 {% endif %}
             </td>
             <td>

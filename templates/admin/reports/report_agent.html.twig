@@ -61,8 +61,16 @@
                         <td>{{ agent.phone ?? '-' }}</td>
                     </tr>
                     <tr>
-                        <td class="text-muted">Site principal</td>
-                        <td>{{ agent.site.name }}</td>
+                        <td class="text-muted">Sites de travail</td>
+                        <td>
+                            {% set sitesWorked = [] %}
+                            {% for shift in agent.shifts %}
+                                {% if shift.site.name not in sitesWorked %}
+                                    {% set sitesWorked = sitesWorked|merge([shift.site.name]) %}
+                                {% endif %}
+                            {% endfor %}
+                            {{ sitesWorked|join(', ') ?: 'Aucun' }}
+                        </td>
                     </tr>
                     <tr>
                         <td class="text-muted">Taux horaire</td>
