@@ -81,19 +81,6 @@
             </div>
             <div class="col-6 col-md-2">
                 <label class="form-label small text-muted">Statut</label>
-                <select class="form-select" 
-                        hx-get="{{ path('admin_agents_search') }}"
-                        hx-trigger="change"
-                        hx-target="#agents-list"
-                        hx-include="[name='q']"
-                        name="status">
-                    <option value="">Tous</option>
-                    <option value="ACTIF">Actifs</option>
-                    <option value="INACTIF">Inactifs</option>
-                </select>
-            </div>
-            <div class="col-6 col-md-2">
-                <label class="form-label small text-muted">Statut</label>
                 <select class="form-select"
                         hx-get="{{ path('admin_agents_search') }}"
                         hx-trigger="change"

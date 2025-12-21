@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Payment;
 use App\Form\PaymentType;
+use App\Repository\AgentRepository;
 use App\Repository\PaymentRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -48,21 +49,12 @@ class PaymentController extends AbstractController
         ]);
     }
 
-    #[Route('/{id}/edit', name: 'app_payment_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Payment $payment, PaymentRepository $paymentRepository): Response
+    #[Route('/{id}/edit', name: 'app_payment_edit', methods: ['GET'])]
+    public function edit(Payment $payment, AgentRepository $agentRepo): Response
     {
-        $form = $this->createForm(PaymentType::class, $payment);
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            $paymentRepository->add($payment, true);
-
-            return $this->redirectToRoute('app_payment_index', [], Response::HTTP_SEE_OTHER);
-        }
-
-        return $this->renderForm('payment/edit.html.twig', [
+        return $this->render('admin/payments/payment_edit.html.twig', [
             'payment' => $payment,
-            'form' => $form,
+            'agents' => $agentRepo->findAll(),
         ]);
     }
 
