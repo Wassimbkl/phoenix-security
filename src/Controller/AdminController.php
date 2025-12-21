@@ -168,7 +168,7 @@ class AdminController extends AbstractController
     }
 
     #[Route('/agents/search', name: 'admin_agents_search')]
-    public function agentsSearch(Request $request, AgentRepository $agentRepo, SiteRepository $siteRepo): Response
+    public function agentsSearch(Request $request, AgentRepository $agentRepo): Response
     {
         $q = $request->query->get('q', '');
         $status = $request->query->get('status', '');
@@ -183,11 +183,6 @@ class AdminController extends AbstractController
         if ($status) {
             $qb->andWhere('a.status = :status')
                ->setParameter('status', $status);
-        }
-
-        if ($siteId) {
-            $qb->andWhere('s.id = :siteId')
-               ->setParameter('siteId', $siteId);
         }
 
         $agents = $qb->getQuery()->getResult();
