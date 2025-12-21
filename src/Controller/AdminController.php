@@ -250,11 +250,6 @@ class AdminController extends AbstractController
             ->add('lastName', TextType::class, ['label' => 'Nom'])
             ->add('phone', TextType::class, ['label' => 'Téléphone', 'required' => false])
             ->add('hourlyRate', MoneyType::class, ['label' => 'Taux horaire', 'currency' => 'EUR'])
-            ->add('site', EntityType::class, [
-                'class' => Site::class,
-                'choice_label' => 'name',
-                'label' => 'Site'
-            ])
             ->add('status', ChoiceType::class, [
                 'label' => 'Statut',
                 'choices' => [
