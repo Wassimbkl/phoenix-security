@@ -869,11 +869,4 @@ public function generateSiteInvoice(
 }
 
 
-    
-
-    
-
-    
-
-    
 }
