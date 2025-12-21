@@ -23,1200 +23,801 @@ use Symfony\Component\Form\Extension\Core\Type\MoneyType;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use App\Repository\ShiftRepository;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use App\Service\Dashboard\DashboardStatsService;
+use App\Service\Agent\AgentStatsService;
+use App\Service\Agent\AgentSearchService;
+use App\Service\Agent\AgentCreatorService;
+use App\Service\Agent\AgentUpdaterService;
+use App\Service\Agent\AgentDeleterService;
+use App\Service\Planning\PlanningService;
+use App\Service\Shift\ShiftCreatorService;
+use App\Service\Shift\ShiftUpdaterService;
+use App\Service\Shift\ShiftDeleterService;
+use App\Service\Site\SiteStatsService;
+use App\Service\Site\SiteCreatorService;
+use App\Service\Site\SiteUpdaterService;
+use App\Service\Site\SiteDeleterService;
+use App\Service\Payment\PaymentReportService;
+use App\Service\Payment\PaymentGeneratorService;
+use App\Service\Payment\PaymentStatusService;
+use App\Service\User\UserUpdaterService;
+use App\Service\User\UserDeletionService;
+use App\Service\Report\ReportStatsService;
+use App\Service\Report\HoursReportService;
+use App\Service\Report\PaymentsReportService;
+use App\Service\Report\AgentReportService;
+use App\Service\Report\SiteReportService;
+use App\Service\Report\SiteDetailsReportService;
+use App\Service\Report\SiteInvoiceReportService;
+
+
+
+
+
 
 
 #[Route('/admin')]
 class AdminController extends AbstractController
 {
-    #[Route('', name: 'admin_dashboard')]
-    public function index(
-        AgentRepository $agentRepo,
-        ShiftRepository $shiftRepo,
-        EntityManagerInterface $em
-    ): Response {
+   #[Route('', name: 'admin_dashboard')]
+public function index(
+    DashboardStatsService $dashboardStatsService,
+    ShiftRepository $shiftRepo
+): Response {
 
-        // ====== STATS PRINCIPALES ======
-        $totalAgents = $agentRepo->count([]);
-        $activeAgents = $agentRepo->count(['status' => 'ACTIF']);
+    $dashboardData = $dashboardStatsService->getDashboardData();
 
-        $startOfMonth = new \DateTime('first day of this month 00:00:00');
-        $endOfMonth = new \DateTime('last day of this month 23:59:59');
+    // Activités récentes 
+    $recentActivities = $shiftRepo->createQueryBuilder('s')
+        ->join('s.agent', 'a')
+        ->orderBy('s.shiftDate', 'DESC')
+        ->addOrderBy('s.startTime', 'DESC')
+        ->setMaxResults(5)
+        ->getQuery()
+        ->getResult();
 
-        // Nombre total de shifts du mois
-        $totalShifts = $shiftRepo->createQueryBuilder('s')
-            ->select('COUNT(s.id)')
-            ->where('s.shiftDate BETWEEN :start AND :end')
-            ->setParameter('start', $startOfMonth)
-            ->setParameter('end', $endOfMonth)
-            ->getQuery()
-            ->getSingleScalarResult();
+    return $this->render('admin/index.html.twig', [
+        'stats' => $dashboardData['stats'],
+        'alerts' => $dashboardData['alerts'],
+        'sites' => $dashboardData['sites'],
+        'recentActivities' => $recentActivities,
+    ]);
+}
+      
+// AGENTS 
+   #[Route('/agents', name: 'admin_agents')]
+public function agents(
+    AgentStatsService $agentStatsService
+): Response {
+    $data = $agentStatsService->getAgentsWithStats();
 
-        $totalHours = $totalShifts * 8;
+    return $this->render('admin/agents/agents.html.twig', [
+        'agents' => $data['agents'],
+        'stats' => $data['stats'],
+    ]);
+}
+  #[Route('/agents/search', name: 'admin_agents_search')]
+public function agentsSearch(
+    Request $request,
+    AgentSearchService $agentSearchService
+): Response {
+    $q = $request->query->get('q');
+    $status = $request->query->get('status');
+    $siteId = $request->query->getInt('site');
 
-        // Salaire total du mois
-        $totalSalary = $shiftRepo->createQueryBuilder('s')
-            ->select('SUM(a.hourlyRate * 8)')
-            ->join('s.agent', 'a')
-            ->where('s.shiftDate BETWEEN :start AND :end')
-            ->setParameter('start', $startOfMonth)
-            ->setParameter('end', $endOfMonth)
-            ->getQuery()
-            ->getSingleScalarResult() ?? 0;
+    $agents = $agentSearchService->search($q, $status, $siteId);
 
+    return $this->render('admin/agents/_agents_table.html.twig', [
+        'agents' => $agents,
+    ]);
+}
 
-        // ====== ACTIVITÉS RÉCENTES ======
-        $recentActivities = $shiftRepo->createQueryBuilder('s')
-            ->join('s.agent', 'a')
-            ->orderBy('s.shiftDate', 'DESC')
-            ->addOrderBy('s.startTime', 'DESC')
-            ->setMaxResults(5)
-            ->getQuery()
-            ->getResult();
+   #[Route('/agents/new', name: 'admin_agent_new')]
+public function newAgent(
+    Request $request,
+    AgentCreatorService $agentCreatorService
+): Response {
+    $agent = new Agent();
 
+    $form = $this->createFormBuilder($agent)
+        ->add('firstName', TextType::class, ['label' => 'Prénom'])
+        ->add('lastName', TextType::class, ['label' => 'Nom'])
+        ->add('phone', TextType::class, [
+            'required' => false,
+            'label' => 'Téléphone'
+        ])
+        ->add('hourlyRate', MoneyType::class, [
+            'label' => 'Salaire horaire',
+            'currency' => 'EUR'
+        ])
+        ->getForm();
 
-        // ====== ALERTES ======
-        $tomorrow = new \DateTime('+1 day');
+    $form->handleRequest($request);
 
-        $unassignedShifts = $shiftRepo->createQueryBuilder('s')
-            ->select('COUNT(s.id)')
-            ->where('s.shiftDate = :tomorrow')
-            ->andWhere('s.agent IS NULL')
-            ->setParameter('tomorrow', $tomorrow)
-            ->getQuery()
-            ->getSingleScalarResult();
+    if ($form->isSubmitted() && $form->isValid()) {
+        $agentCreatorService->create($agent);
 
-        $lateAgents = $shiftRepo->createQueryBuilder('s')
-            ->select('COUNT(s.id)')
-            ->where('s.startTime < :now')
-            ->andWhere('s.status != :done')
-            ->setParameter('now', new \DateTime())
-            ->setParameter('done', 'EFFECTUE')
-            ->getQuery()
-            ->getSingleScalarResult();
-
-
-        // ====== APERÇU DES SITES ======
-        $sites = $em->getRepository(Site::class)->findAll();
-
-        $siteOverview = [];
-        foreach ($sites as $site) {
-            // Compter les agents ayant travaillé sur ce site via les shifts
-            $agentCount = count($shiftRepo->createQueryBuilder('s')
-                ->select('DISTINCT a.id')
-                ->join('s.agent', 'a')
-                ->where('s.site = :site')
-                ->setParameter('site', $site)
-                ->getQuery()
-                ->getResult());
-            
-            $siteOverview[] = [
-                'name'   => $site->getName(),
-                'agents' => $agentCount,
-                'hours'  => '24h/24 - 7j/7',
-            ];
-        }
-
-
-        return $this->render('admin/index.html.twig', [
-            'stats' => [
-                'total_agents' => $totalAgents,
-                'active_agents' => $activeAgents,
-                'total_shifts' => $totalShifts,
-                'total_hours' => $totalHours,
-                'total_salary' => $totalSalary,
-            ],
-            'recentActivities' => $recentActivities,
-            'alerts' => [
-                'unassigned' => $unassignedShifts,
-                'late_agents' => $lateAgents,
-                'monthly_report' => true
-            ],
-            'sites' => $siteOverview
-        ]);
-    }
-
-    #[Route('/agents', name: 'admin_agents')]
-    public function agents(
-        AgentRepository $agentRepo,
-        ShiftRepository $shiftRepo
-    ): Response {
-        $agents = $agentRepo->findAll();
-
-        // Stats rapides
-        $totalAgents = count($agents);
-        $activeAgents = $agentRepo->count(['status' => 'ACTIF']);
-
-        $totalHours = $shiftRepo->createQueryBuilder('s')
-            ->select('COUNT(s.id) * 8')
-            ->getQuery()
-            ->getSingleScalarResult();
-
-        $totalSalary = $agentRepo->createQueryBuilder('a')
-            ->select('SUM(a.hourlyRate * 160)')
-            ->getQuery()
-            ->getSingleScalarResult();
-
-        return $this->render('admin/agents/agents.html.twig', [
-            'agents' => $agents,
-            'stats' => [
-                'total_agents' => $totalAgents,
-                'active_agents' => $activeAgents,
-                'total_hours' => $totalHours,
-                'total_salary' => round($totalSalary ?? 0, 2),
-            ],
-        ]);
-    }
-
-    #[Route('/agents/search', name: 'admin_agents_search')]
-    public function agentsSearch(Request $request, AgentRepository $agentRepo, SiteRepository $siteRepo): Response
-    {
-        $q = $request->query->get('q', '');
-        $status = $request->query->get('status', '');
-
-        $qb = $agentRepo->createQueryBuilder('a');
-
-        if ($q) {
-            $qb->andWhere('a.firstName LIKE :q OR a.lastName LIKE :q OR a.phone LIKE :q')
-               ->setParameter('q', '%' . $q . '%');
-        }
-
-        if ($status) {
-            $qb->andWhere('a.status = :status')
-               ->setParameter('status', $status);
-        }
-
-        if ($siteId) {
-            $qb->andWhere('s.id = :siteId')
-               ->setParameter('siteId', $siteId);
-        }
-
-        $agents = $qb->getQuery()->getResult();
-
-        return $this->render('admin/agents/_agents_table.html.twig', [
-            'agents' => $agents,
-        ]);
-    }
-
-    #[Route('/agents/new', name: 'admin_agent_new')]
-    public function newAgent(
-        Request $request,
-        EntityManagerInterface $em
-    ): Response {
-        $agent = new Agent();
-
-        $form = $this->createFormBuilder($agent)
-            ->add('firstName', TextType::class, [
-                'label' => 'Prénom'
-            ])
-            ->add('lastName', TextType::class, [
-                'label' => 'Nom'
-            ])
-            ->add('phone', TextType::class, [
-                'required' => false,
-                'label' => 'Téléphone'
-            ])
-            ->add('hourlyRate', MoneyType::class, [
-                'label' => 'Salaire horaire',
-                'currency' => 'EUR'
-            ])
-            
-            ->getForm()
-        ;
-
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            $agent->setStatus('ACTIF');
-            $agent->setHireDate(new \DateTime());
-
-            $em->persist($agent);
-            $em->flush();
-
-            $this->addFlash('success', 'Agent créé avec succès !');
-            return $this->redirectToRoute('admin_agents');
-        }
-
-        return $this->render('admin/agents/agent_new.html.twig', [
-            'form' => $form->createView(),
-        ]);
-    }
-
-    #[Route('/agents/{id}/edit', name: 'admin_agent_edit')]
-    public function editAgent(Request $request, AgentRepository $agentRepo, EntityManagerInterface $em, int $id): Response
-    {
-        $agent = $agentRepo->find($id);
-
-        if (!$agent) {
-            throw $this->createNotFoundException("Agent non trouvé");
-        }
-
-        $form = $this->createFormBuilder($agent)
-            ->add('firstName', TextType::class, ['label' => 'Prénom'])
-            ->add('lastName', TextType::class, ['label' => 'Nom'])
-            ->add('phone', TextType::class, ['label' => 'Téléphone', 'required' => false])
-            ->add('hourlyRate', MoneyType::class, ['label' => 'Taux horaire', 'currency' => 'EUR'])
-            ->add('site', EntityType::class, [
-                'class' => Site::class,
-                'choice_label' => 'name',
-                'label' => 'Site'
-            ])
-            ->add('status', ChoiceType::class, [
-                'label' => 'Statut',
-                'choices' => [
-                    'Actif' => 'ACTIF',
-                    'Inactif' => 'INACTIF',
-                ],
-            ])
-            ->getForm();
-
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            $em->flush();
-            $this->addFlash('success', 'Agent modifié avec succès !');
-            return $this->redirectToRoute('admin_agents');
-        }
-
-        return $this->render('admin/agents/agent_edit.html.twig', [
-            'form' => $form->createView(),
-            'agent' => $agent,
-        ]);
-    }
-
-    #[Route('/agents/{id}/delete', name: 'admin_agent_delete', methods: ['POST'])]
-    public function deleteAgent(Request $request, AgentRepository $agentRepo, EntityManagerInterface $em, int $id): Response
-    {
-        $agent = $agentRepo->find($id);
-        if (!$agent) {
-            throw $this->createNotFoundException("Agent non trouvé");
-        }
-
-        if ($this->isCsrfTokenValid('delete' . $agent->getId(), $request->request->get('_token'))) {
-            $em->remove($agent);
-            $em->flush();
-            $this->addFlash('success', 'Agent supprimé avec succès !');
-        }
-
+        $this->addFlash('success', 'Agent créé avec succès !');
         return $this->redirectToRoute('admin_agents');
     }
 
-    // ==================== PLANNING ====================
-
-    #[Route('/planning', name: 'admin_planning')]
-    public function planning(Request $request, ShiftRepository $shiftRepo, AgentRepository $agentRepo, SiteRepository $siteRepo): Response
-    {
-        $view = $request->query->get('view', 'month');
-        $dateStr = $request->query->get('date', date('Y-m-d'));
-        $currentDate = new \DateTime($dateStr);
-
-        if ($view === 'week') {
-            $startDate = (clone $currentDate)->modify('monday this week');
-            $endDate = (clone $startDate)->modify('+6 days');
-        } else {
-            $startDate = (clone $currentDate)->modify('first day of this month');
-            $endDate = (clone $currentDate)->modify('last day of this month');
-        }
-
-        $shifts = $shiftRepo->createQueryBuilder('s')
-            ->where('s.shiftDate BETWEEN :start AND :end')
-            ->setParameter('start', $startDate)
-            ->setParameter('end', $endDate)
-            ->orderBy('s.shiftDate', 'ASC')
-            ->addOrderBy('s.startTime', 'ASC')
-            ->getQuery()
-            ->getResult();
-
-        // Organiser les shifts par date
-        $shiftsByDate = [];
-        foreach ($shifts as $shift) {
-            $dateKey = $shift->getShiftDate()->format('Y-m-d');
-            if (!isset($shiftsByDate[$dateKey])) {
-                $shiftsByDate[$dateKey] = [];
-            }
-            $shiftsByDate[$dateKey][] = $shift;
-        }
-
-        return $this->render('admin/shifts/planning.html.twig', [
-            'view' => $view,
-            'currentDate' => $currentDate,
-            'startDate' => $startDate,
-            'endDate' => $endDate,
-            'shiftsByDate' => $shiftsByDate,
-            'agents' => $agentRepo->findBy(['status' => 'ACTIF']),
-            'sites' => $siteRepo->findAll(),
-        ]);
-    }
-
-    #[Route('/planning/calendar', name: 'admin_planning_calendar')]
-    public function planningCalendar(Request $request, ShiftRepository $shiftRepo): Response
-    {
-        $view = $request->query->get('view', 'month');
-        $dateStr = $request->query->get('date', date('Y-m-d'));
-        $currentDate = new \DateTime($dateStr);
-
-        if ($view === 'week') {
-            $startDate = (clone $currentDate)->modify('monday this week');
-            $endDate = (clone $startDate)->modify('+6 days');
-        } else {
-            $startDate = (clone $currentDate)->modify('first day of this month');
-            $endDate = (clone $currentDate)->modify('last day of this month');
-        }
-
-        $shifts = $shiftRepo->createQueryBuilder('s')
-            ->where('s.shiftDate BETWEEN :start AND :end')
-            ->setParameter('start', $startDate)
-            ->setParameter('end', $endDate)
-            ->orderBy('s.shiftDate', 'ASC')
-            ->addOrderBy('s.startTime', 'ASC')
-            ->getQuery()
-            ->getResult();
-
-        $shiftsByDate = [];
-        foreach ($shifts as $shift) {
-            $dateKey = $shift->getShiftDate()->format('Y-m-d');
-            if (!isset($shiftsByDate[$dateKey])) {
-                $shiftsByDate[$dateKey] = [];
-            }
-            $shiftsByDate[$dateKey][] = $shift;
-        }
-
-        return $this->render('admin/shifts/_planning_calendar.html.twig', [
-            'view' => $view,
-            'currentDate' => $currentDate,
-            'startDate' => $startDate,
-            'endDate' => $endDate,
-            'shiftsByDate' => $shiftsByDate,
-        ]);
-    }
-
-    #[Route('/planning/day/{date}', name: 'admin_planning_day')]
-    public function planningDay(string $date, ShiftRepository $shiftRepo, AgentRepository $agentRepo, SiteRepository $siteRepo): Response
-    {
-        $currentDate = new \DateTime($date);
-        
-        $shifts = $shiftRepo->createQueryBuilder('s')
-            ->where('s.shiftDate = :date')
-            ->setParameter('date', $currentDate)
-            ->orderBy('s.startTime', 'ASC')
-            ->getQuery()
-            ->getResult();
-
-        return $this->render('admin/shifts/planning_day.html.twig', [
-            'date' => $currentDate,
-            'shifts' => $shifts,
-            'agents' => $agentRepo->findBy(['status' => 'ACTIF']),
-            'sites' => $siteRepo->findAll(),
-        ]);
-    }
-
-    #[Route('/shifts/new', name: 'admin_shift_new')]
-    public function newShift(Request $request, EntityManagerInterface $em, AgentRepository $agentRepo, SiteRepository $siteRepo): Response
-    {
-        $shift = new Shift();
-        
-        $form = $this->createFormBuilder($shift)
-            ->add('agent', EntityType::class, [
-                'class' => Agent::class,
-                'choice_label' => fn($agent) => $agent->getFirstName() . ' ' . $agent->getLastName(),
-                'label' => 'Agent',
-                'query_builder' => fn($repo) => $repo->createQueryBuilder('a')->where("a.status = 'ACTIF'")->orderBy('a.lastName', 'ASC'),
-            ])
-            ->add('site', EntityType::class, [
-                'class' => Site::class,
-                'choice_label' => 'name',
-                'label' => 'Site',
-            ])
-            ->add('shiftDate', null, [
-                'widget' => 'single_text',
-                'label' => 'Date',
-            ])
-            ->add('startTime', null, [
-                'widget' => 'single_text',
-                'label' => 'Heure de début',
-            ])
-            ->add('endTime', null, [
-                'widget' => 'single_text',
-                'label' => 'Heure de fin',
-            ])
-            ->add('type', ChoiceType::class, [
-                'label' => 'Type',
-                'choices' => [
-                    'Jour' => 'JOUR',
-                    'Nuit' => 'NUIT',
-                ],
-            ])
-            ->add('status', ChoiceType::class, [
-                'label' => 'Statut',
-                'choices' => [
-                    'Planifié' => 'PLANIFIE',
-                    'Confirmé' => 'CONFIRME',
-                    'Effectué' => 'EFFECTUE',
-                    'Annulé' => 'ANNULE',
-                ],
-            ])
-            ->getForm();
-
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            $em->persist($shift);
-            $em->flush();
-            $this->addFlash('success', 'Shift créé avec succès !');
-            return $this->redirectToRoute('admin_planning');
-        }
-
-        return $this->render('admin/shifts/shift_new.html.twig', [
-            'form' => $form->createView(),
-        ]);
-    }
-
-    #[Route('/shifts/{id}/edit', name: 'admin_shift_edit')]
-    public function editShift(Request $request, ShiftRepository $shiftRepo, EntityManagerInterface $em, int $id): Response
-    {
-        $shift = $shiftRepo->find($id);
-        if (!$shift) {
-            throw $this->createNotFoundException("Shift non trouvé");
-        }
-
-        $form = $this->createFormBuilder($shift)
-            ->add('agent', EntityType::class, [
-                'class' => Agent::class,
-                'choice_label' => fn($agent) => $agent->getFirstName() . ' ' . $agent->getLastName(),
-                'label' => 'Agent',
-                'query_builder' => fn($repo) => $repo->createQueryBuilder('a')->where("a.status = 'ACTIF'")->orderBy('a.lastName', 'ASC'),
-            ])
-            ->add('site', EntityType::class, [
-                'class' => Site::class,
-                'choice_label' => 'name',
-                'label' => 'Site',
-            ])
-            ->add('shiftDate', null, [
-                'widget' => 'single_text',
-                'label' => 'Date',
-            ])
-            ->add('startTime', null, [
-                'widget' => 'single_text',
-                'label' => 'Heure de début',
-            ])
-            ->add('endTime', null, [
-                'widget' => 'single_text',
-                'label' => 'Heure de fin',
-            ])
-            ->add('type', ChoiceType::class, [
-                'label' => 'Type',
-                'choices' => [
-                    'Jour' => 'JOUR',
-                    'Nuit' => 'NUIT',
-                ],
-            ])
-            ->add('status', ChoiceType::class, [
-                'label' => 'Statut',
-                'choices' => [
-                    'Planifié' => 'PLANIFIE',
-                    'Confirmé' => 'CONFIRME',
-                    'Effectué' => 'EFFECTUE',
-                    'Annulé' => 'ANNULE',
-                ],
-            ])
-            ->getForm();
-
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            $em->flush();
-            $this->addFlash('success', 'Shift modifié avec succès !');
-            return $this->redirectToRoute('admin_planning');
-        }
-
-        return $this->render('admin/shifts/shift_edit.html.twig', [
-            'form' => $form->createView(),
-            'shift' => $shift,
-        ]);
-    }
-
-    #[Route('/shifts/{id}/delete', name: 'admin_shift_delete', methods: ['POST'])]
-    public function deleteShift(Request $request, ShiftRepository $shiftRepo, EntityManagerInterface $em, int $id): Response
-    {
-        $shift = $shiftRepo->find($id);
-        if (!$shift) {
-            throw $this->createNotFoundException("Shift non trouvé");
-        }
-
-        if ($this->isCsrfTokenValid('delete' . $shift->getId(), $request->request->get('_token'))) {
-            $em->remove($shift);
-            $em->flush();
-            $this->addFlash('success', 'Shift supprimé avec succès !');
-        }
-
-        return $this->redirectToRoute('admin_planning');
-    }
-
-    // ==================== SITES ====================
-
-    #[Route('/sites', name: 'admin_sites')]
-    public function sites(SiteRepository $siteRepo, AgentRepository $agentRepo, ShiftRepository $shiftRepo): Response
-    {
-        $sites = $siteRepo->findAll();
-        
-        $sitesWithStats = [];
-        foreach ($sites as $site) {
-            // Compter les agents distincts ayant travaillé sur ce site
-            $agentCount = count($shiftRepo->createQueryBuilder('s')
-                ->select('DISTINCT a.id')
-                ->join('s.agent', 'a')
-                ->where('s.site = :site')
-                ->setParameter('site', $site)
-                ->getQuery()
-                ->getResult());
-            
-            $sitesWithStats[] = [
-                'site' => $site,
-                'agentCount' => $agentCount,
-            ];
-        }
-
-        return $this->render('admin/sites/sites.html.twig', [
-            'sites' => $sitesWithStats,
-        ]);
-    }
-
-    #[Route('/sites/new', name: 'admin_site_new')]
-    public function newSite(Request $request, EntityManagerInterface $em): Response
-    {
-        $site = new Site();
-        
-        $form = $this->createFormBuilder($site)
-            ->add('name', TextType::class, ['label' => 'Nom du site'])
-            ->add('address', TextType::class, ['label' => 'Adresse', 'required' => false])
-            ->add('city', TextType::class, ['label' => 'Ville', 'required' => false])
-            ->add('contactName', TextType::class, ['label' => 'Nom du contact', 'required' => false])
-            ->add('contactPhone', TextType::class, ['label' => 'Téléphone contact', 'required' => false])
-            ->getForm();
-
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            $em->persist($site);
-            $em->flush();
-            $this->addFlash('success', 'Site créé avec succès !');
-            return $this->redirectToRoute('admin_sites');
-        }
-
-        return $this->render('admin/sites/site_new.html.twig', [
-            'form' => $form->createView(),
-        ]);
-    }
-
-    #[Route('/sites/{id}/edit', name: 'admin_site_edit')]
-    public function editSite(Request $request, SiteRepository $siteRepo, EntityManagerInterface $em, int $id): Response
-    {
-        $site = $siteRepo->find($id);
-        if (!$site) {
-            throw $this->createNotFoundException("Site non trouvé");
-        }
-
-        $form = $this->createFormBuilder($site)
-            ->add('name', TextType::class, ['label' => 'Nom du site'])
-            ->add('address', TextType::class, ['label' => 'Adresse', 'required' => false])
-            ->add('city', TextType::class, ['label' => 'Ville', 'required' => false])
-            ->add('contactName', TextType::class, ['label' => 'Nom du contact', 'required' => false])
-            ->add('contactPhone', TextType::class, ['label' => 'Téléphone contact', 'required' => false])
-            ->getForm();
-
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            $em->flush();
-            $this->addFlash('success', 'Site modifié avec succès !');
-            return $this->redirectToRoute('admin_sites');
-        }
-
-        return $this->render('admin/sites/site_edit.html.twig', [
-            'form' => $form->createView(),
-            'site' => $site,
-        ]);
-    }
-
-    #[Route('/sites/{id}/delete', name: 'admin_site_delete', methods: ['POST'])]
-    public function deleteSite(Request $request, SiteRepository $siteRepo, EntityManagerInterface $em, int $id): Response
-    {
-        $site = $siteRepo->find($id);
-        if (!$site) {
-            throw $this->createNotFoundException("Site non trouvé");
-        }
-
-        if ($this->isCsrfTokenValid('delete' . $site->getId(), $request->request->get('_token'))) {
-            $em->remove($site);
-            $em->flush();
-            $this->addFlash('success', 'Site supprimé avec succès !');
-        }
-
-        return $this->redirectToRoute('admin_sites');
-    }
-
-    // ==================== PAIEMENTS ====================
-
-    #[Route('/payments', name: 'admin_payments')]
-    public function payments(Request $request, PaymentRepository $paymentRepo, AgentRepository $agentRepo): Response
-    {
-        $period = $request->query->get('period', date('Y-m'));
-        $agentId = $request->query->get('agent', '');
-
-        $qb = $paymentRepo->createQueryBuilder('p')
-            ->leftJoin('p.agent', 'a');
-
-        if ($period) {
-            $qb->andWhere('p.period = :period')
-               ->setParameter('period', $period);
-        }
-
-        if ($agentId) {
-            $qb->andWhere('a.id = :agentId')
-               ->setParameter('agentId', $agentId);
-        }
-
-        $payments = $qb->orderBy('p.period', 'DESC')->getQuery()->getResult();
-
-        // Stats
-        $totalAmount = array_sum(array_map(fn($p) => (float)$p->getTotalAmount(), $payments));
-        $totalHours = array_sum(array_map(fn($p) => (float)$p->getTotalHoursDay() + (float)$p->getTotalHoursNight(), $payments));
-
-        return $this->render('admin/payments/payments.html.twig', [
-            'payments' => $payments,
-            'agents' => $agentRepo->findAll(),
-            'currentPeriod' => $period,
-            'currentAgent' => $agentId,
-            'stats' => [
-                'total_amount' => $totalAmount,
-                'total_hours' => $totalHours,
-                'count' => count($payments),
-            ],
-        ]);
-    }
-
-    #[Route('/payments/generate', name: 'admin_payments_generate', methods: ['POST'])]
-    public function generatePayments(Request $request, AgentRepository $agentRepo, ShiftRepository $shiftRepo, EntityManagerInterface $em): Response
-    {
-        $period = $request->request->get('period', date('Y-m'));
-        
-        $startDate = new \DateTime($period . '-01');
-        $endDate = (clone $startDate)->modify('last day of this month');
-
-        $agents = $agentRepo->findBy(['status' => 'ACTIF']);
-
-        foreach ($agents as $agent) {
-            // Récupérer les shifts effectués de l'agent pour ce mois
-            $shifts = $shiftRepo->createQueryBuilder('s')
-                ->where('s.agent = :agent')
-                ->andWhere('s.shiftDate BETWEEN :start AND :end')
-                ->andWhere('s.status = :status')
-                ->setParameter('agent', $agent)
-                ->setParameter('start', $startDate)
-                ->setParameter('end', $endDate)
-                ->setParameter('status', 'EFFECTUE')
-                ->getQuery()
-                ->getResult();
-
-            if (count($shifts) === 0) {
-                continue;
-            }
-
-            $hoursDay = 0;
-            $hoursNight = 0;
-
-            foreach ($shifts as $shift) {
-                $start = $shift->getStartTime();
-                $end = $shift->getEndTime();
-                $duration = ($end->format('H') * 60 + $end->format('i')) - ($start->format('H') * 60 + $start->format('i'));
-                if ($duration < 0) $duration += 24 * 60;
-                $hours = $duration / 60;
-
-                if ($shift->getType() === 'NUIT') {
-                    $hoursNight += $hours;
-                } else {
-                    $hoursDay += $hours;
-                }
-            }
-
-            $hourlyRate = (float)$agent->getHourlyRate();
-            $nightBonus = 1.25;
-            $totalAmount = ($hoursDay * $hourlyRate) + ($hoursNight * $hourlyRate * $nightBonus);
-
-            // Créer ou mettre à jour le paiement
-            $existingPayment = $em->getRepository(Payment::class)->findOneBy([
-                'agent' => $agent,
-                'period' => $period,
-            ]);
-
-            if ($existingPayment) {
-                $payment = $existingPayment;
-            } else {
-                $payment = new Payment();
-                $payment->setAgent($agent);
-                $payment->setPeriod($period);
-            }
-
-            $payment->setTotalHoursDay((string)$hoursDay);
-            $payment->setTotalHoursNight((string)$hoursNight);
-            $payment->setTotalAmount((string)round($totalAmount, 2));
-
-            $em->persist($payment);
-        }
-
-        $em->flush();
-        $this->addFlash('success', 'Paiements générés pour la période ' . $period);
-
-        return $this->redirectToRoute('admin_payments', ['period' => $period]);
-    }
-
-    #[Route('/payments/{id}/mark-paid', name: 'admin_payment_mark_paid', methods: ['POST'])]
-    public function markPaymentPaid(Request $request, Payment $payment, EntityManagerInterface $em): Response
-    {
-        $paymentDate = $request->request->get('payment_date');
-        
-        if ($paymentDate) {
-            $payment->setPaymentDate(new \DateTime($paymentDate));
-            $em->flush();
-            $this->addFlash('success', 'Paiement marqué comme effectué.');
-        }
-
-        return $this->redirectToRoute('app_payment_show', ['id' => $payment->getId()]);
-    }
-
-    // ==================== UTILISATEURS ====================
-
-    #[Route('/users', name: 'admin_users')]
-    public function users(UserRepository $userRepo): Response
-    {
-        return $this->render('admin/users/users.html.twig', [
-            'users' => $userRepo->findAll(),
-        ]);
-    }
-
-    #[Route('/users/{id}/edit', name: 'admin_user_edit', methods: ['POST'])]
-    public function editUser(Request $request, User $user, EntityManagerInterface $em, UserPasswordHasherInterface $passwordHasher): Response
-    {
-        $email = $request->request->get('email');
-        $role = $request->request->get('role');
-        $password = $request->request->get('password');
-
-        if ($email) {
-            $user->setEmail($email);
-        }
-        if ($role) {
-            $user->setRole($role);
-        }
-        if ($password && !empty(trim($password))) {
-            $hashedPassword = $passwordHasher->hashPassword($user, $password);
-            $user->setPassword($hashedPassword);
-        }
-
-        $em->flush();
-        $this->addFlash('success', 'Utilisateur modifié avec succès.');
-
-        return $this->redirectToRoute('admin_users');
-    }
-
-    #[Route('/users/{id}/delete', name: 'admin_user_delete', methods: ['POST'])]
-    public function deleteUser(Request $request, User $user, EntityManagerInterface $em): Response
-    {
-        if ($this->isCsrfTokenValid('delete' . $user->getId(), $request->request->get('_token'))) {
-            // Ne pas supprimer les admins
-            if ($user->getRole() === 'ADMIN') {
-                $this->addFlash('error', 'Impossible de supprimer un administrateur.');
-                return $this->redirectToRoute('admin_users');
-            }
-
-            $em->remove($user);
-            $em->flush();
-            $this->addFlash('success', 'Utilisateur supprimé avec succès.');
-        }
-
-        return $this->redirectToRoute('admin_users');
-    }
-
-    // ==================== RAPPORTS ====================
-
-    #[Route('/reports', name: 'admin_reports')]
-    public function reports(AgentRepository $agentRepo, ShiftRepository $shiftRepo, PaymentRepository $paymentRepo, SiteRepository $siteRepo): Response
-    {
-        $currentMonth = date('Y-m');
-        $startOfMonth = new \DateTime('first day of this month');
-        $endOfMonth = new \DateTime('last day of this month');
-
-        // Stats globales
-        $totalShifts = $shiftRepo->createQueryBuilder('s')
-            ->select('COUNT(s.id)')
-            ->where('s.shiftDate BETWEEN :start AND :end')
-            ->setParameter('start', $startOfMonth)
-            ->setParameter('end', $endOfMonth)
-            ->getQuery()
-            ->getSingleScalarResult();
-
-        $completedShifts = $shiftRepo->createQueryBuilder('s')
-            ->select('COUNT(s.id)')
-            ->where('s.shiftDate BETWEEN :start AND :end')
-            ->andWhere('s.status = :status')
-            ->setParameter('start', $startOfMonth)
-            ->setParameter('end', $endOfMonth)
-            ->setParameter('status', 'EFFECTUE')
-            ->getQuery()
-            ->getSingleScalarResult();
-
-        return $this->render('admin/reports/reports.html.twig', [
-            'currentMonth' => $currentMonth,
-            'stats' => [
-                'total_shifts' => $totalShifts,
-                'completed_shifts' => $completedShifts,
-                'completion_rate' => $totalShifts > 0 ? round(($completedShifts / $totalShifts) * 100, 1) : 0,
-            ],
-            'agents' => $agentRepo->findAll(),
-            'sites' => $siteRepo->findAll(),
-        ]);
-    }
-
-    #[Route('/reports/hours-csv', name: 'admin_report_hours_csv')]
-    public function exportHoursCsv(Request $request, AgentRepository $agentRepo, ShiftRepository $shiftRepo): Response
-    {
-        $period = $request->query->get('period', date('Y-m'));
-        $startDate = new \DateTime($period . '-01');
-        $endDate = (clone $startDate)->modify('last day of this month');
-
-        $agents = $agentRepo->findBy(['status' => 'ACTIF']);
-        
-        $rows = [];
-        $rows[] = ['Agent', 'Heures Jour', 'Heures Nuit', 'Total Heures', 'Taux Horaire', 'Montant Estimé'];
-
-        foreach ($agents as $agent) {
-            $shifts = $shiftRepo->createQueryBuilder('s')
-                ->where('s.agent = :agent')
-                ->andWhere('s.shiftDate BETWEEN :start AND :end')
-                ->andWhere('s.status = :status')
-                ->setParameter('agent', $agent)
-                ->setParameter('start', $startDate)
-                ->setParameter('end', $endDate)
-                ->setParameter('status', 'EFFECTUE')
-                ->getQuery()
-                ->getResult();
-
-            $hoursDay = 0;
-            $hoursNight = 0;
-
-            foreach ($shifts as $shift) {
-                $start = $shift->getStartTime();
-                $end = $shift->getEndTime();
-                $hours = ($end->getTimestamp() - $start->getTimestamp()) / 3600;
-                if ($hours < 0) $hours += 24;
-
-                if ($shift->getType() === 'NUIT') {
-                    $hoursNight += $hours;
-                } else {
-                    $hoursDay += $hours;
-                }
-            }
-
-            $totalHours = $hoursDay + $hoursNight;
-            $hourlyRate = (float) $agent->getHourlyRate();
-            $amount = ($hoursDay * $hourlyRate) + ($hoursNight * $hourlyRate * 1.25);
-
-            $rows[] = [
-                $agent->getFirstName() . ' ' . $agent->getLastName(),
-                number_format($hoursDay, 2),
-                number_format($hoursNight, 2),
-                number_format($totalHours, 2),
-                number_format($hourlyRate, 2) . '€',
-                number_format($amount, 2) . '€',
-            ];
-        }
-
-        $csv = $this->generateCsv($rows);
-        
-        $response = new Response($csv);
-        $response->headers->set('Content-Type', 'text/csv; charset=utf-8');
-        $response->headers->set('Content-Disposition', 'attachment; filename="rapport-heures-' . $period . '.csv"');
-        
-        return $response;
-    }
-
-    #[Route('/reports/payments-csv', name: 'admin_report_payments_csv')]
-    public function exportPaymentsCsv(Request $request, PaymentRepository $paymentRepo): Response
-    {
-        $periodFrom = $request->query->get('from', date('Y-m'));
-        $periodTo = $request->query->get('to', date('Y-m'));
-
-        $payments = $paymentRepo->createQueryBuilder('p')
-            ->leftJoin('p.agent', 'a')
-            ->where('p.period >= :from')
-            ->andWhere('p.period <= :to')
-            ->setParameter('from', $periodFrom)
-            ->setParameter('to', $periodTo)
-            ->orderBy('p.period', 'ASC')
-            ->addOrderBy('a.lastName', 'ASC')
-            ->getQuery()
-            ->getResult();
-
-        $rows = [];
-        $rows[] = ['Période', 'Agent', 'Heures Jour', 'Heures Nuit', 'Total Heures', 'Montant', 'Date Paiement', 'Statut'];
-
-        foreach ($payments as $payment) {
-            $rows[] = [
-                $payment->getPeriod(),
-                $payment->getAgent()->getFirstName() . ' ' . $payment->getAgent()->getLastName(),
-                $payment->getTotalHoursDay(),
-                $payment->getTotalHoursNight(),
-                (float)$payment->getTotalHoursDay() + (float)$payment->getTotalHoursNight(),
-                number_format((float)$payment->getTotalAmount(), 2) . '€',
-                $payment->getPaymentDate() ? $payment->getPaymentDate()->format('d/m/Y') : '',
-                $payment->getPaymentDate() ? 'Payé' : 'En attente',
-            ];
-        }
-
-        $csv = $this->generateCsv($rows);
-        
-        $response = new Response($csv);
-        $response->headers->set('Content-Type', 'text/csv; charset=utf-8');
-        $response->headers->set('Content-Disposition', 'attachment; filename="export-paiements-' . $periodFrom . '-a-' . $periodTo . '.csv"');
-        
-        return $response;
-    }
-
-    #[Route('/reports/agent/{id}', name: 'admin_report_agent')]
-    public function agentReport(Agent $agent, Request $request, ShiftRepository $shiftRepo, PaymentRepository $paymentRepo): Response
-    {
-        $period = $request->query->get('period', date('Y-m'));
-        $startDate = new \DateTime($period . '-01');
-        $endDate = (clone $startDate)->modify('last day of this month');
-
-        // Shifts du mois
-        $shifts = $shiftRepo->createQueryBuilder('s')
-            ->leftJoin('s.site', 'site')
-            ->where('s.agent = :agent')
-            ->andWhere('s.shiftDate BETWEEN :start AND :end')
-            ->setParameter('agent', $agent)
-            ->setParameter('start', $startDate)
-            ->setParameter('end', $endDate)
-            ->orderBy('s.shiftDate', 'ASC')
-            ->addOrderBy('s.startTime', 'ASC')
-            ->getQuery()
-            ->getResult();
-
-        // Calculs
-        $hoursDay = 0;
-        $hoursNight = 0;
-        $shiftsCompleted = 0;
-        $shiftsAbsent = 0;
-
-        foreach ($shifts as $shift) {
-            $start = $shift->getStartTime();
-            $end = $shift->getEndTime();
-            $hours = ($end->getTimestamp() - $start->getTimestamp()) / 3600;
-            if ($hours < 0) $hours += 24;
-
-            if ($shift->getStatus() === 'EFFECTUE') {
-                $shiftsCompleted++;
-                if ($shift->getType() === 'NUIT') {
-                    $hoursNight += $hours;
-                } else {
-                    $hoursDay += $hours;
-                }
-            } elseif ($shift->getStatus() === 'ABSENT') {
-                $shiftsAbsent++;
-            }
-        }
-
-        $hourlyRate = (float) $agent->getHourlyRate();
-        $amountDay = $hoursDay * $hourlyRate;
-        $amountNight = $hoursNight * $hourlyRate * 1.25;
-        $totalAmount = $amountDay + $amountNight;
-
-        // Paiement du mois
-        $payment = $paymentRepo->findOneBy(['agent' => $agent, 'period' => $period]);
-
-        return $this->render('admin/reports/report_agent.html.twig', [
-            'agent' => $agent,
-            'period' => $period,
-            'shifts' => $shifts,
-            'stats' => [
-                'hours_day' => $hoursDay,
-                'hours_night' => $hoursNight,
-                'total_hours' => $hoursDay + $hoursNight,
-                'amount_day' => $amountDay,
-                'amount_night' => $amountNight,
-                'total_amount' => $totalAmount,
-                'shifts_total' => count($shifts),
-                'shifts_completed' => $shiftsCompleted,
-                'shifts_absent' => $shiftsAbsent,
-            ],
-            'payment' => $payment,
-        ]);
-    }
-    
-    
-
-   #[Route('/reports/sites', name: 'admin_report_sites')]
-public function sitesReport(Request $request, SiteRepository $siteRepo, ShiftRepository $shiftRepo): Response
-{
-    // Récupération des paramètres
-    $period = $request->query->get('period', date('Y-m'));
-    $siteId = $request->query->get('site'); //  Le site sélectionné
-
-    $startDate = new \DateTime($period . '-01');
-    $endDate = (clone $startDate)->modify('last day of this month');
-
-    // Si un site est sélectionné → on ne prend que celui-là
-    if ($siteId) {
-        $site = $siteRepo->find($siteId);
-        $sites = $site ? [$site] : [];
-    } else {
-        // Sinon tous les sites
-        $sites = $siteRepo->findAll();
-    }
-
-    $sitesData = [];
-
-    foreach ($sites as $site) {
-        $shifts = $shiftRepo->createQueryBuilder('s')
-            ->leftJoin('s.agent', 'a')
-            ->where('s.site = :site')
-            ->andWhere('s.shiftDate BETWEEN :start AND :end')
-            ->setParameter('site', $site)
-            ->setParameter('start', $startDate)
-            ->setParameter('end', $endDate)
-            ->getQuery()
-            ->getResult();
-
-        $hoursDay = 0;
-        $hoursNight = 0;
-        $totalCost = 0;
-        $shiftsCompleted = 0;
-        $agents = [];
-
-        foreach ($shifts as $shift) {
-            $start = $shift->getStartTime();
-            $end = $shift->getEndTime();
-
-            $hours = ($end->getTimestamp() - $start->getTimestamp()) / 3600;
-            if ($hours < 0) $hours += 24;
-
-            if ($shift->getStatus() === 'EFFECTUE') {
-                $shiftsCompleted++;
-                $hourlyRate = (float) $shift->getAgent()->getHourlyRate();
-
-                if ($shift->getType() === 'NUIT') {
-                    $hoursNight += $hours;
-                    $totalCost += $hours * $hourlyRate * 1.25;
-                } else {
-                    $hoursDay += $hours;
-                    $totalCost += $hours * $hourlyRate;
-                }
-            }
-
-            $agentId = $shift->getAgent()->getId();
-            if (!in_array($agentId, $agents)) {
-                $agents[] = $agentId;
-            }
-        }
-
-        $sitesData[] = [
-            'site' => $site,
-            'shifts_total' => count($shifts),
-            'shifts_completed' => $shiftsCompleted,
-            'hours_day' => $hoursDay,
-            'hours_night' => $hoursNight,
-            'total_hours' => $hoursDay + $hoursNight,
-            'total_cost' => $totalCost,
-            'agents_count' => count($agents),
-        ];
-    }
-
-    return $this->render('admin/reports/report_sites.html.twig', [
-        'period' => $period,
-        'sitesData' => $sitesData,
-        'siteId' => $siteId, // 👈 Pour garder la sélection dans le formulaire
+    return $this->render('admin/agents/agent_new.html.twig', [
+        'form' => $form->createView(),
     ]);
 }
 
 
-    private function generateCsv(array $rows): string
-    {
-        $output = fopen('php://temp', 'r+');
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM UTF-8 pour Excel
-        
-        foreach ($rows as $row) {
-            fputcsv($output, $row, ';');
-        }
-        
-        rewind($output);
-        $csv = stream_get_contents($output);
-        fclose($output);
-        
-        return $csv;
+   #[Route('/agents/{id}/edit', name: 'admin_agent_edit')]
+public function editAgent(
+    Request $request,
+    AgentRepository $agentRepo,
+    AgentUpdaterService $agentUpdaterService,
+    int $id
+): Response {
+    $agent = $agentRepo->find($id);
+
+    if (!$agent) {
+        throw $this->createNotFoundException("Agent non trouvé");
     }
 
+    $form = $this->createFormBuilder($agent)
+        ->add('firstName', TextType::class, [
+            'label' => 'Prénom'
+        ])
+        ->add('lastName', TextType::class, [
+            'label' => 'Nom'
+        ])
+        ->add('phone', TextType::class, [
+            'label' => 'Téléphone',
+            'required' => false
+        ])
+        ->add('hourlyRate', MoneyType::class, [
+            'label' => 'Taux horaire',
+            'currency' => 'EUR'
+        ])
+        ->add('site', EntityType::class, [
+            'class' => Site::class,
+            'choice_label' => 'name',
+            'label' => 'Site'
+        ])
+        ->add('status', ChoiceType::class, [
+            'label' => 'Statut',
+            'choices' => [
+                'Actif' => 'ACTIF',
+                'Inactif' => 'INACTIF',
+            ],
+        ])
+        ->getForm();
 
-    #[Route('/reports/site/{id}/details', name: 'admin_report_site_details')]
+    $form->handleRequest($request);
+
+    if ($form->isSubmitted() && $form->isValid()) {
+        $agentUpdaterService->update($agent);
+
+        $this->addFlash('success', 'Agent modifié avec succès !');
+        return $this->redirectToRoute('admin_agents');
+    }
+
+    return $this->render('admin/agents/agent_edit.html.twig', [
+        'form' => $form->createView(),
+        'agent' => $agent,
+    ]);
+}
+
+
+  #[Route('/agents/{id}/delete', name: 'admin_agent_delete', methods: ['POST'])]
+public function deleteAgent(
+    Request $request,
+    AgentRepository $agentRepo,
+    AgentDeleterService $agentDeleterService,
+    int $id
+): Response {
+    $agent = $agentRepo->find($id);
+
+    if (!$agent) {
+        throw $this->createNotFoundException("Agent non trouvé");
+    }
+
+    if ($this->isCsrfTokenValid('delete' . $agent->getId(), $request->request->get('_token'))) {
+        $agentDeleterService->delete($agent);
+        $this->addFlash('success', 'Agent supprimé avec succès !');
+    }
+
+    return $this->redirectToRoute('admin_agents');
+}
+
+
+    // ==================== PLANNING ====================
+
+   #[Route('/planning', name: 'admin_planning')]
+public function planning(
+    Request $request,
+    PlanningService $planningService
+): Response {
+    $view = $request->query->get('view', 'month');
+    $dateStr = $request->query->get('date', date('Y-m-d'));
+    $currentDate = new \DateTime($dateStr);
+
+    $data = $planningService->getPlanningData($view, $currentDate);
+
+    return $this->render('admin/shifts/planning.html.twig', [
+        'view' => $view,
+        'currentDate' => $currentDate,
+        'startDate' => $data['startDate'],
+        'endDate' => $data['endDate'],
+        'shiftsByDate' => $data['shiftsByDate'],
+        'agents' => $data['agents'],
+        'sites' => $data['sites'],
+    ]);
+}
+
+
+   #[Route('/planning/calendar', name: 'admin_planning_calendar')]
+public function planningCalendar(
+    Request $request,
+    PlanningService $planningService
+): Response {
+    $view = $request->query->get('view', 'month');
+    $dateStr = $request->query->get('date', date('Y-m-d'));
+    $currentDate = new \DateTime($dateStr);
+
+    $data = $planningService->getPlanningData($view, $currentDate);
+
+    return $this->render('admin/shifts/_planning_calendar.html.twig', [
+        'view' => $view,
+        'currentDate' => $currentDate,
+        'startDate' => $data['startDate'],
+        'endDate' => $data['endDate'],
+        'shiftsByDate' => $data['shiftsByDate'],
+    ]);
+}
+
+
+   #[Route('/planning/day/{date}', name: 'admin_planning_day')]
+public function planningDay(
+    string $date,
+    PlanningService $planningService
+): Response {
+    $currentDate = new \DateTime($date);
+
+    $data = $planningService->getDayPlanning($currentDate);
+
+    return $this->render('admin/shifts/planning_day.html.twig', $data);
+}
+
+
+
+
+#[Route('/shifts/new', name: 'admin_shift_new')]
+public function newShift(
+    Request $request,
+    ShiftCreatorService $shiftCreator,
+    AgentRepository $agentRepo,
+    SiteRepository $siteRepo
+): Response {
+    $shift = new Shift();
+
+    $form = $this->createFormBuilder($shift)
+        ->add('agent', EntityType::class, [
+            'class' => Agent::class,
+            'choice_label' => fn($agent) => $agent->getFirstName().' '.$agent->getLastName(),
+            'label' => 'Agent',
+            'query_builder' => fn($repo) =>
+                $repo->createQueryBuilder('a')
+                     ->where("a.status = 'ACTIF'")
+                     ->orderBy('a.lastName', 'ASC'),
+        ])
+        ->add('site', EntityType::class, [
+            'class' => Site::class,
+            'choice_label' => 'name',
+            'label' => 'Site',
+        ])
+        ->add('shiftDate', null, [
+            'widget' => 'single_text',
+            'label' => 'Date',
+        ])
+        ->add('startTime', null, [
+            'widget' => 'single_text',
+            'label' => 'Heure de début',
+        ])
+        ->add('endTime', null, [
+            'widget' => 'single_text',
+            'label' => 'Heure de fin',
+        ])
+        ->add('type', ChoiceType::class, [
+            'label' => 'Type',
+            'choices' => [
+                'Jour' => 'JOUR',
+                'Nuit' => 'NUIT',
+            ],
+        ])
+        ->add('status', ChoiceType::class, [
+            'label' => 'Statut',
+            'choices' => [
+                'Planifié' => 'PLANIFIE',
+                'Confirmé' => 'CONFIRME',
+                'Effectué' => 'EFFECTUE',
+                'Annulé' => 'ANNULE',
+            ],
+        ])
+        ->getForm();
+
+    $form->handleRequest($request);
+
+    if ($form->isSubmitted() && $form->isValid()) {
+        $shiftCreator->create($shift);
+
+        $this->addFlash('success', 'Shift créé avec succès !');
+        return $this->redirectToRoute('admin_planning');
+    }
+
+    return $this->render('admin/shifts/shift_new.html.twig', [
+        'form' => $form->createView(),
+    ]);
+}
+
+
+
+#[Route('/shifts/{id}/edit', name: 'admin_shift_edit')]
+public function editShift(
+    Request $request,
+    ShiftRepository $shiftRepo,
+    ShiftUpdaterService $shiftUpdater,
+    int $id
+): Response {
+    $shift = $shiftRepo->find($id);
+    if (!$shift) {
+        throw $this->createNotFoundException("Shift non trouvé");
+    }
+
+    $form = $this->createFormBuilder($shift)
+        ->add('agent', EntityType::class, [
+            'class' => Agent::class,
+            'choice_label' => fn($agent) => $agent->getFirstName().' '.$agent->getLastName(),
+            'label' => 'Agent',
+            'query_builder' => fn($repo) =>
+                $repo->createQueryBuilder('a')
+                     ->where("a.status = 'ACTIF'")
+                     ->orderBy('a.lastName', 'ASC'),
+        ])
+        ->add('site', EntityType::class, [
+            'class' => Site::class,
+            'choice_label' => 'name',
+            'label' => 'Site',
+        ])
+        ->add('shiftDate', null, [
+            'widget' => 'single_text',
+            'label' => 'Date',
+        ])
+        ->add('startTime', null, [
+            'widget' => 'single_text',
+            'label' => 'Heure de début',
+        ])
+        ->add('endTime', null, [
+            'widget' => 'single_text',
+            'label' => 'Heure de fin',
+        ])
+        ->add('type', ChoiceType::class, [
+            'label' => 'Type',
+            'choices' => [
+                'Jour' => 'JOUR',
+                'Nuit' => 'NUIT',
+            ],
+        ])
+        ->add('status', ChoiceType::class, [
+            'label' => 'Statut',
+            'choices' => [
+                'Planifié' => 'PLANIFIE',
+                'Confirmé' => 'CONFIRME',
+                'Effectué' => 'EFFECTUE',
+                'Annulé' => 'ANNULE',
+            ],
+        ])
+        ->getForm();
+
+    $form->handleRequest($request);
+
+    if ($form->isSubmitted() && $form->isValid()) {
+        $shiftUpdater->update($shift);
+
+        $this->addFlash('success', 'Shift modifié avec succès !');
+        return $this->redirectToRoute('admin_planning');
+    }
+
+    return $this->render('admin/shifts/shift_edit.html.twig', [
+        'form' => $form->createView(),
+        'shift' => $shift,
+    ]);
+}
+
+
+   
+
+#[Route('/shifts/{id}/delete', name: 'admin_shift_delete', methods: ['POST'])]
+public function deleteShift(
+    Request $request,
+    ShiftRepository $shiftRepo,
+    ShiftDeleterService $shiftDeleter,
+    int $id
+): Response {
+    $shift = $shiftRepo->find($id);
+    if (!$shift) {
+        throw $this->createNotFoundException("Shift non trouvé");
+    }
+
+    if ($this->isCsrfTokenValid('delete' . $shift->getId(), $request->request->get('_token'))) {
+        $shiftDeleter->delete($shift);
+        $this->addFlash('success', 'Shift supprimé avec succès !');
+    }
+
+    return $this->redirectToRoute('admin_planning');
+}
+
+
+    // ==================== SITES ====================
+
+    #[Route('/sites', name: 'admin_sites')]
+public function sites(SiteStatsService $siteStatsService): Response
+{
+    return $this->render('admin/sites/sites.html.twig', [
+        'sites' => $siteStatsService->getSitesWithStats(),
+    ]);
+}
+
+#[Route('/sites/new', name: 'admin_site_new')]
+public function newSite(
+    Request $request,
+    SiteCreatorService $siteCreatorService
+): Response {
+    $site = new Site();
+
+    $form = $this->createFormBuilder($site)
+        ->add('name', TextType::class, ['label' => 'Nom du site'])
+        ->add('address', TextType::class, ['label' => 'Adresse', 'required' => false])
+        ->add('city', TextType::class, ['label' => 'Ville', 'required' => false])
+        ->add('contactName', TextType::class, ['label' => 'Nom du contact', 'required' => false])
+        ->add('contactPhone', TextType::class, ['label' => 'Téléphone contact', 'required' => false])
+        ->getForm();
+
+    $form->handleRequest($request);
+
+    if ($form->isSubmitted() && $form->isValid()) {
+        $siteCreatorService->create($site);
+
+        $this->addFlash('success', 'Site créé avec succès !');
+        return $this->redirectToRoute('admin_sites');
+    }
+
+    return $this->render('admin/sites/site_new.html.twig', [
+        'form' => $form->createView(),
+    ]);
+}
+
+
+   
+
+#[Route('/sites/{id}/edit', name: 'admin_site_edit')]
+public function editSite(
+    Request $request,
+    SiteRepository $siteRepo,
+    SiteUpdaterService $siteUpdaterService,
+    int $id
+): Response {
+    $site = $siteRepo->find($id);
+
+    if (!$site) {
+        throw $this->createNotFoundException("Site non trouvé");
+    }
+
+    $form = $this->createFormBuilder($site)
+        ->add('name', TextType::class, ['label' => 'Nom du site'])
+        ->add('address', TextType::class, ['label' => 'Adresse', 'required' => false])
+        ->add('city', TextType::class, ['label' => 'Ville', 'required' => false])
+        ->add('contactName', TextType::class, ['label' => 'Nom du contact', 'required' => false])
+        ->add('contactPhone', TextType::class, ['label' => 'Téléphone contact', 'required' => false])
+        ->getForm();
+
+    $form->handleRequest($request);
+
+    if ($form->isSubmitted() && $form->isValid()) {
+        $siteUpdaterService->update($site);
+
+        $this->addFlash('success', 'Site modifié avec succès !');
+        return $this->redirectToRoute('admin_sites');
+    }
+
+    return $this->render('admin/sites/site_edit.html.twig', [
+        'form' => $form->createView(),
+        'site' => $site,
+    ]);
+}
+
+
+    
+
+#[Route('/sites/{id}/delete', name: 'admin_site_delete', methods: ['POST'])]
+public function deleteSite(
+    Request $request,
+    SiteRepository $siteRepo,
+    SiteDeleterService $siteDeleterService,
+    int $id
+): Response {
+    $site = $siteRepo->find($id);
+
+    if (!$site) {
+        throw $this->createNotFoundException("Site non trouvé");
+    }
+
+    if ($this->isCsrfTokenValid('delete' . $site->getId(), $request->request->get('_token'))) {
+        $siteDeleterService->delete($site);
+        $this->addFlash('success', 'Site supprimé avec succès !');
+    }
+
+    return $this->redirectToRoute('admin_sites');
+}
+
+
+    // ==================== PAIEMENTS ====================
+
+
+
+#[Route('/payments', name: 'admin_payments')]
+public function payments(
+    Request $request,
+    PaymentReportService $paymentReportService,
+    AgentRepository $agentRepo
+): Response {
+    $period = $request->query->get('period', date('Y-m'));
+    $agentId = $request->query->get('agent');
+
+    $report = $paymentReportService->getPaymentsReport(
+        $period,
+        $agentId ? (int) $agentId : null
+    );
+
+    return $this->render('admin/payments/payments.html.twig', [
+        'payments' => $report['payments'],
+        'agents' => $agentRepo->findAll(),
+        'currentPeriod' => $period,
+        'currentAgent' => $agentId,
+        'stats' => $report['stats'],
+    ]);
+}
+
+
+#[Route('/payments/generate', name: 'admin_payments_generate', methods: ['POST'])]
+public function generatePayments(
+    Request $request,
+    PaymentGeneratorService $paymentGeneratorService
+): Response {
+    $period = $request->request->get('period', date('Y-m'));
+
+    $paymentGeneratorService->generateForPeriod($period);
+
+    $this->addFlash(
+        'success',
+        'Paiements générés pour la période ' . $period
+    );
+
+    return $this->redirectToRoute('admin_payments', [
+        'period' => $period,
+    ]);
+}
+
+#[Route('/payments/{id}/mark-paid', name: 'admin_payment_mark_paid', methods: ['POST'])]
+public function markPaymentPaid(
+    Request $request,
+    Payment $payment,
+    PaymentStatusService $paymentStatusService
+): Response {
+    $paymentDate = $request->request->get('payment_date');
+
+    if ($paymentDate) {
+        $paymentStatusService->markAsPaid(
+            $payment,
+            new \DateTime($paymentDate)
+        );
+
+        $this->addFlash('success', 'Paiement marqué comme effectué.');
+    }
+
+    return $this->redirectToRoute('admin_payments');
+}
+
+
+    // ==================== UTILISATEURS ====================
+
+#[Route('/users', name: 'admin_users')]
+public function users(UserRepository $userRepo): Response
+{
+    return $this->render('admin/users/users.html.twig', [
+        'users' => $userRepo->findAll(),
+    ]);
+}
+
+#[Route('/users/{id}/edit', name: 'admin_user_edit', methods: ['POST'])]
+public function editUser(
+    Request $request,
+    User $user,
+    UserUpdaterService $userUpdaterService
+): Response {
+    $userUpdaterService->update(
+        $user,
+        $request->request->get('email'),
+        $request->request->get('role'),
+        $request->request->get('password')
+    );
+
+    $this->addFlash('success', 'Utilisateur modifié avec succès.');
+
+    return $this->redirectToRoute('admin_users');
+}
+
+#[Route('/users/{id}/delete', name: 'admin_user_delete', methods: ['POST'])]
+public function deleteUser(
+    Request $request,
+    User $user,
+    UserDeletionService $userDeletionService
+): Response {
+    if ($this->isCsrfTokenValid('delete' . $user->getId(), $request->request->get('_token'))) {
+        try {
+            $userDeletionService->delete($user);
+            $this->addFlash('success', 'Utilisateur supprimé avec succès.');
+        } catch (\LogicException $e) {
+            $this->addFlash('error', $e->getMessage());
+        }
+    }
+
+    return $this->redirectToRoute('admin_users');
+}
+
+
+    // ==================== RAPPORTS ====================
+
+#[Route('/reports', name: 'admin_reports')]
+public function reports(
+    AgentRepository $agentRepo,
+    SiteRepository $siteRepo,
+    ReportStatsService $reportStatsService
+): Response {
+    $currentMonth = date('Y-m');
+    $startOfMonth = new \DateTime('first day of this month');
+    $endOfMonth = new \DateTime('last day of this month');
+
+    $stats = $reportStatsService->getMonthlyStats($startOfMonth, $endOfMonth);
+
+    return $this->render('admin/reports/reports.html.twig', [
+        'currentMonth' => $currentMonth,
+        'stats' => $stats,
+        'agents' => $agentRepo->findAll(),
+        'sites' => $siteRepo->findAll(),
+    ]);
+}
+
+#[Route('/reports/hours-csv', name: 'admin_report_hours_csv')]
+public function exportHoursCsv(
+    Request $request,
+    HoursReportService $hoursReportService
+): Response {
+    $period = $request->query->get('period', date('Y-m'));
+
+    $rows = [];
+    $rows[] = ['Agent', 'Heures Jour', 'Heures Nuit', 'Total Heures', 'Taux Horaire', 'Montant Estimé'];
+
+    $data = $hoursReportService->getMonthlyHours($period);
+
+    foreach ($data as $item) {
+        $rows[] = [
+            $item['agent']->getFirstName() . ' ' . $item['agent']->getLastName(),
+            number_format($item['hours_day'], 2),
+            number_format($item['hours_night'], 2),
+            number_format($item['total_hours'], 2),
+            number_format($item['hourly_rate'], 2) . '€',
+            number_format($item['amount'], 2) . '€',
+        ];
+    }
+
+    $csv = $this->generateCsv($rows);
+
+    return new Response($csv, 200, [
+        'Content-Type' => 'text/csv; charset=utf-8',
+        'Content-Disposition' => 'attachment; filename="rapport-heures-' . $period . '.csv"',
+    ]);
+}
+
+
+#[Route('/reports/payments-csv', name: 'admin_report_payments_csv')]
+public function exportPaymentsCsv(
+    Request $request,
+    PaymentsReportService $paymentsReportService
+): Response {
+    $periodFrom = $request->query->get('from', date('Y-m'));
+    $periodTo = $request->query->get('to', date('Y-m'));
+
+    $rows = [];
+    $rows[] = ['Période', 'Agent', 'Heures Jour', 'Heures Nuit', 'Total Heures', 'Montant', 'Date Paiement', 'Statut'];
+
+    $data = $paymentsReportService->getPaymentsBetween($periodFrom, $periodTo);
+
+    foreach ($data as $item) {
+        $rows[] = [
+            $item['period'],
+            $item['agent']->getFirstName() . ' ' . $item['agent']->getLastName(),
+            number_format($item['hours_day'], 2),
+            number_format($item['hours_night'], 2),
+            number_format($item['total_hours'], 2),
+            number_format($item['amount'], 2) . '€',
+            $item['payment_date'] ? $item['payment_date']->format('d/m/Y') : '',
+            $item['is_paid'] ? 'Payé' : 'En attente',
+        ];
+    }
+
+    $csv = $this->generateCsv($rows);
+
+    return new Response($csv, 200, [
+        'Content-Type' => 'text/csv; charset=utf-8',
+        'Content-Disposition' => sprintf(
+            'attachment; filename="export-paiements-%s-a-%s.csv"',
+            $periodFrom,
+            $periodTo
+        ),
+    ]);
+}
+
+
+#[Route('/reports/agent/{id}', name: 'admin_report_agent')]
+public function agentReport(
+    Agent $agent,
+    Request $request,
+    AgentReportService $agentReportService
+): Response {
+    $period = $request->query->get('period', date('Y-m'));
+
+    $report = $agentReportService->getMonthlyReport($agent, $period);
+
+    return $this->render('admin/reports/report_agent.html.twig', [
+        'agent' => $agent,
+        'period' => $period,
+        'shifts' => $report['shifts'],
+        'stats' => $report['stats'],
+        'payment' => $report['payment'],
+    ]);
+}
+
+
+#[Route('/reports/sites', name: 'admin_report_sites')]
+public function sitesReport(
+    Request $request,
+    SiteReportService $siteReportService
+): Response {
+    $period = $request->query->get('period', date('Y-m'));
+    $siteId = $request->query->get('site');
+
+    $sitesData = $siteReportService->getMonthlyReport(
+        $period,
+        $siteId ? (int) $siteId : null
+    );
+
+    return $this->render('admin/reports/report_sites.html.twig', [
+        'period' => $period,
+        'sitesData' => $sitesData,
+        'siteId' => $siteId,
+    ]);
+}
+
+
+#[Route('/reports/site/{id}/details', name: 'admin_report_site_details')]
 public function siteDetails(
     Site $site,
     Request $request,
-    ShiftRepository $shiftRepo
+    SiteDetailsReportService $siteDetailsReportService
 ): Response {
     $period = $request->query->get('period', date('Y-m'));
-    $startDate = new \DateTime($period . '-01');
-    $endDate = (clone $startDate)->modify('last day of this month');
 
-    // Récupérer tous les shifts du site sur la période
-    $shifts = $shiftRepo->createQueryBuilder('s')
-        ->leftJoin('s.agent', 'a')
-        ->addSelect('a')
-        ->where('s.site = :site')
-        ->andWhere('s.shiftDate BETWEEN :start AND :end')
-        ->setParameter('site', $site)
-        ->setParameter('start', $startDate)
-        ->setParameter('end', $endDate)
-        ->orderBy('a.lastName', 'ASC')
-        ->addOrderBy('s.shiftDate', 'ASC')
-        ->addOrderBy('s.startTime', 'ASC')
-        ->getQuery()
-        ->getResult();
-
-    // Regrouper par agent
-    $agentsData = [];
-
-    foreach ($shifts as $shift) {
-        $agent = $shift->getAgent();
-        if (!$agent) {
-            continue;
-        }
-
-        $agentId = $agent->getId();
-
-        if (!isset($agentsData[$agentId])) {
-            $agentsData[$agentId] = [
-                'agent' => $agent,
-                'shifts' => [],
-                'hours_day' => 0,
-                'hours_night' => 0,
-                'total_hours' => 0,
-            ];
-        }
-
-        $start = $shift->getStartTime();
-        $end = $shift->getEndTime();
-        $hours = ($end->getTimestamp() - $start->getTimestamp()) / 3600;
-        if ($hours < 0) $hours += 24;
-
-        if ($shift->getStatus() === 'EFFECTUE') {
-            if ($shift->getType() === 'NUIT') {
-                $agentsData[$agentId]['hours_night'] += $hours;
-            } else {
-                $agentsData[$agentId]['hours_day'] += $hours;
-            }
-
-            $agentsData[$agentId]['total_hours'] += $hours;
-        }
-
-        $agentsData[$agentId]['shifts'][] = $shift;
-    }
+    $agentsData = $siteDetailsReportService->getSiteDetails(
+        $site,
+        $period
+    );
 
     return $this->render('admin/reports/report_site_details.html.twig', [
         'site' => $site,
@@ -1225,109 +826,48 @@ public function siteDetails(
     ]);
 }
 
-    #[Route('/reports/site/{id}/facture', name: 'admin_report_site_facture')]
-    public function generateSiteInvoice(
-        Site $site,
-        Request $request,
-        ShiftRepository $shiftRepo,
-        PdfService $pdfService
-    ): Response {
-        $period = $request->query->get('period', date('Y-m'));
-        $startDate = new \DateTime($period . '-01');
-        $endDate = (clone $startDate)->modify('last day of this month');
+#[Route('/reports/site/{id}/facture', name: 'admin_report_site_facture')]
+public function generateSiteInvoice(
+    Site $site,
+    Request $request,
+    SiteInvoiceReportService $invoiceService,
+    PdfService $pdfService
+): Response {
+    $period = $request->query->get('period', date('Y-m'));
 
-        // Récupérer tous les shifts du site sur la période
-        $shifts = $shiftRepo->createQueryBuilder('s')
-            ->leftJoin('s.agent', 'a')
-            ->addSelect('a')
-            ->where('s.site = :site')
-            ->andWhere('s.shiftDate BETWEEN :start AND :end')
-            ->setParameter('site', $site)
-            ->setParameter('start', $startDate)
-            ->setParameter('end', $endDate)
-            ->orderBy('a.lastName', 'ASC')
-            ->addOrderBy('s.shiftDate', 'ASC')
-            ->getQuery()
-            ->getResult();
+    $invoiceData = $invoiceService->buildInvoiceData($site, $period);
+    $periodLabel = $invoiceService->buildPeriodLabel($period);
 
-        // Regrouper par agent
-        $agentsData = [];
-        $totalHoursDay = 0;
-        $totalHoursNight = 0;
-        $totalShifts = 0;
+    // Taux horaires (plus tard : config ou DB)
+    $hourlyRateDay = 15.00;
+    $hourlyRateNight = 18.00;
 
-        foreach ($shifts as $shift) {
-            $agent = $shift->getAgent();
-            if (!$agent) continue;
+    $invoiceNumber = 'FAC-' . $site->getId() . '-' . str_replace('-', '', $period);
 
-            $agentId = $agent->getId();
-
-            if (!isset($agentsData[$agentId])) {
-                $agentsData[$agentId] = [
-                    'agent' => $agent,
-                    'shifts' => [],
-                    'hours_day' => 0,
-                    'hours_night' => 0,
-                    'total_hours' => 0,
-                ];
-            }
-
-            $start = $shift->getStartTime();
-            $end = $shift->getEndTime();
-            $hours = ($end->getTimestamp() - $start->getTimestamp()) / 3600;
-            if ($hours < 0) $hours += 24;
-
-            if ($shift->getStatus() === 'EFFECTUE') {
-                if ($shift->getType() === 'NUIT') {
-                    $agentsData[$agentId]['hours_night'] += $hours;
-                    $totalHoursNight += $hours;
-                } else {
-                    $agentsData[$agentId]['hours_day'] += $hours;
-                    $totalHoursDay += $hours;
-                }
-                $agentsData[$agentId]['total_hours'] += $hours;
-            }
-
-            $agentsData[$agentId]['shifts'][] = $shift;
-            $totalShifts++;
-        }
-
-        // Taux horaires (à personnaliser)
-        $hourlyRateDay = 15.00;
-        $hourlyRateNight = 18.00;
-
-        // Générer le numéro de facture
-        $invoiceNumber = 'FAC-' . $site->getId() . '-' . str_replace('-', '', $period);
-
-        // Période en format lisible
-        $months = ['01' => 'Janvier', '02' => 'Février', '03' => 'Mars', '04' => 'Avril', 
-                   '05' => 'Mai', '06' => 'Juin', '07' => 'Juillet', '08' => 'Août',
-                   '09' => 'Septembre', '10' => 'Octobre', '11' => 'Novembre', '12' => 'Décembre'];
-        $periodParts = explode('-', $period);
-        $periodLabel = $months[$periodParts[1]] . ' ' . $periodParts[0];
-
-        $pdfContent = $pdfService->generatePdf('admin/reports/facture_site.html.twig', [
+    $pdfContent = $pdfService->generatePdf(
+        'admin/reports/facture_site.html.twig',
+        [
             'site' => $site,
             'period' => $period,
             'periodLabel' => $periodLabel,
-            'agentsData' => $agentsData,
             'invoiceNumber' => $invoiceNumber,
             'invoiceDate' => new \DateTime(),
-            'totalShifts' => $totalShifts,
-            'totalHoursDay' => $totalHoursDay,
-            'totalHoursNight' => $totalHoursNight,
-            'totalHours' => $totalHoursDay + $totalHoursNight,
             'hourlyRateDay' => $hourlyRateDay,
             'hourlyRateNight' => $hourlyRateNight,
-        ]);
+            ...$invoiceData,
+        ]
+    );
 
-        $filename = 'Facture_' . preg_replace('/[^a-zA-Z0-9]/', '_', $site->getName()) . '_' . $period . '.pdf';
+    $filename = 'Facture_' .
+        preg_replace('/[^a-zA-Z0-9]/', '_', $site->getName()) .
+        '_' . $period . '.pdf';
 
-        return new Response($pdfContent, 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="' . $filename . '"',
-        ]);
-    }
+    return new Response($pdfContent, 200, [
+        'Content-Type' => 'application/pdf',
+        'Content-Disposition' => 'inline; filename="' . $filename . '"',
+    ]);
+}
+
 
     
 
