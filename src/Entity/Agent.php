@@ -148,4 +148,9 @@ class Agent
     {
         return $this->payments;
     }
+
+    public function __toString(): string
+    {
+        return $this->firstName . ' ' . $this->lastName;
+    }
 }

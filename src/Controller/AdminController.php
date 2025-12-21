@@ -773,6 +773,43 @@ class AdminController extends AbstractController
         return $this->redirectToRoute('app_payment_show', ['id' => $payment->getId()]);
     }
 
+    #[Route('/payments/{id}/update', name: 'admin_payment_update', methods: ['POST'])]
+    public function updatePayment(Request $request, Payment $payment, AgentRepository $agentRepo, EntityManagerInterface $em): Response
+    {
+        if (!$this->isCsrfTokenValid('payment_edit' . $payment->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Token CSRF invalide.');
+            return $this->redirectToRoute('app_payment_edit', ['id' => $payment->getId()]);
+        }
+
+        $agentId = $request->request->get('agent_id');
+        $period = $request->request->get('period');
+        $hoursDay = $request->request->get('hours_day');
+        $hoursNight = $request->request->get('hours_night');
+        $amount = $request->request->get('amount');
+        $paymentDate = $request->request->get('payment_date');
+
+        $agent = $agentRepo->find($agentId);
+        if ($agent) {
+            $payment->setAgent($agent);
+        }
+
+        $payment->setPeriod($period);
+        $payment->setTotalHoursDay($hoursDay);
+        $payment->setTotalHoursNight($hoursNight);
+        $payment->setTotalAmount($amount);
+        
+        if ($paymentDate) {
+            $payment->setPaymentDate(new \DateTime($paymentDate));
+        } else {
+            $payment->setPaymentDate(null);
+        }
+
+        $em->flush();
+        $this->addFlash('success', 'Paiement modifié avec succès.');
+
+        return $this->redirectToRoute('admin_payments');
+    }
+
     // ==================== UTILISATEURS ====================
 
     #[Route('/users', name: 'admin_users')]
